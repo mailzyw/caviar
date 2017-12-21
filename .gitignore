@@ -1,0 +1,28 @@
+# Maven
+target/
+
+# Eclipse
+.settings/
+.classpath
+.project
+*/.project
+*/.classpath
+
+# Intellij
+.idea/*
+*.iml
+*.iws
+
+# log
+logs/*
+*.log
+ic-www-service/data/*
+
+data/*
+
+ic-service/data/*
+Mybatis_generate.xml
+
+.DS_Store
+/ic-service/data/
+/tree.txt
