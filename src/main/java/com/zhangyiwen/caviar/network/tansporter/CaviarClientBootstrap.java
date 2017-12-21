@@ -4,6 +4,7 @@ import com.zhangyiwen.caviar.biz.client.CaviarClientBizListenerImpl;
 import com.zhangyiwen.caviar.network.client.CaviarClient;
 import com.zhangyiwen.caviar.network.client.CaviarClientBizListener;
 import com.zhangyiwen.caviar.network.client.Client;
+import com.zhangyiwen.caviar.network.exception.CaviarNetworkException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,8 +28,13 @@ public class CaviarClientBootstrap {
         int port = 7005;
 
         //connect
-        Client client = new CaviarClient(caviarBizListener);
-        client.connect(host, port);
+        Client client = new CaviarClient(caviarBizListener,10*1000L);
+        try {
+            client.connect(host, port);
+        } catch (CaviarNetworkException e) {
+            e.printStackTrace();
+            client.close();
+        }
 
         //login
         client.login("login test".getBytes());

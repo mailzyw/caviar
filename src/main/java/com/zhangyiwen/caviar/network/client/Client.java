@@ -13,10 +13,32 @@ public interface Client {
 
     /**
      * 连接服务端
-     * @param host
-     * @param port
+     * @param host host
+     * @param port port
      */
-    void connect(String host, int port);
+    void connect(String host, int port) throws CaviarNetworkException;
+
+    /**
+     * 重连服务端
+     */
+    void reconnect();
+
+    /**
+     * 断连服务端
+     */
+    void disconnect();
+
+    /**
+     * 关闭客户端
+     * @throws IOException
+     */
+    void close() throws IOException;
+
+    /**
+     * 设置客户端运行状态
+     * @param running running
+     */
+    void setRunningState(boolean running);
 
     /**
      * 客户端登录
@@ -28,7 +50,7 @@ public interface Client {
     /**
      * 客户端登出
      * @param logoutMsg logoutMsg
-     * @return 登出响应
+     * @return
      */
     byte[] logout(byte[] logoutMsg) throws CaviarNetworkException;
 
@@ -45,11 +67,4 @@ public interface Client {
      * @throws CaviarNetworkException
      */
     void sendMsgAsync(byte[] msg, CaviarMsgCallback caviarMsgCallback) throws CaviarNetworkException;
-
-    /**
-     * 关闭客户端
-     * @throws IOException
-     */
-    void close() throws IOException;
-
 }

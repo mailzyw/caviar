@@ -18,4 +18,10 @@ public class RequestContext {
 
     private CaviarMessage responseMessage;  //响应消息
 
+    public RequestContext(long sessionIndex,long requestId,CaviarMessage requestMessage){
+        this.sessionIndex = sessionIndex;
+        this.requestId = requestId;
+        this.requestMessage = requestMessage;
+    }
+
 }

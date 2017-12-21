@@ -10,12 +10,14 @@ import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.timeout.IdleStateHandler;
 import lombok.Data;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by zhangyiwen on 2017/12/19.
@@ -69,7 +71,7 @@ public class CaviarServer implements Server {
                 @Override
                 protected void initChannel(SocketChannel ch) throws Exception {
                     ChannelPipeline p = ch.pipeline();
-    //                p.addLast("readIdlstate", new IdleStateHandler(20, 0, 0));
+//                    p.addLast("readIdlstate", new IdleStateHandler(10, 0, 0, TimeUnit.SECONDS));
                     p.addLast("connector-encoder", new CaviarEncoder());
                     p.addLast("connector-decoder", new CaviarDecoder());
                     p.addLast("event-handler", eventHandler);

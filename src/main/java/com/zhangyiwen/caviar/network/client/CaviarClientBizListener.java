@@ -10,18 +10,8 @@ import com.zhangyiwen.caviar.protocol.CaviarMessage;
 public interface CaviarClientBizListener {
 
     /**
-     * 客户端登录
-     */
-    void CLIENT_LOGIN_RESP(SessionContext session, byte[] msg);
-
-    /**
-     * 客户端消息发送
+     * 客户端消息发送响应
      */
     void CLIENT_MSG_SEND_RESP(SessionContext session, byte[] msg);
-
-    /**
-     * 客户端登出
-     */
-    void CLIENT_LOGOUT_RESP(SessionContext session, byte[] msg);
 
 }

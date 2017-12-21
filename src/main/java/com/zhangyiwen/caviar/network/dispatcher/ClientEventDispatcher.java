@@ -1,8 +1,10 @@
 package com.zhangyiwen.caviar.network.dispatcher;
 
 import com.zhangyiwen.caviar.network.client.CaviarClientBizListener;
+import com.zhangyiwen.caviar.network.client.Client;
 import com.zhangyiwen.caviar.network.enu.NetworkEvent;
-import com.zhangyiwen.caviar.network.server.CaviarServerBizListener;
+import com.zhangyiwen.caviar.network.request.RequestContext;
+import com.zhangyiwen.caviar.network.request.RequestContextManager;
 import com.zhangyiwen.caviar.network.session.NettySessionContext;
 import com.zhangyiwen.caviar.network.session.SessionContext;
 import com.zhangyiwen.caviar.network.session.SessionManagerFactory;
@@ -32,10 +34,13 @@ public class ClientEventDispatcher implements EventDispatcher{
     private static final ExecutorService executor =
             Executors.newFixedThreadPool(128, new BasicThreadFactory.Builder().namingPattern("server-event-dispatcher-%d").build());
 
-    private CaviarClientBizListener caviarBizListener;
+    private CaviarClientBizListener caviarBizListener;      //消息监听器,业务方实现
 
-    public ClientEventDispatcher(CaviarClientBizListener caviarBizListener) {
+    private Client client;                                  //网络客户端
+
+    public ClientEventDispatcher(CaviarClientBizListener caviarBizListener, Client client) {
         this.caviarBizListener = caviarBizListener;
+        this.client = client;
     }
 
     /**
@@ -102,30 +107,44 @@ public class ClientEventDispatcher implements EventDispatcher{
         SessionContext session = new NettySessionContext(channel, (InetSocketAddress)ctx.channel().remoteAddress(), (InetSocketAddress)ctx.channel().localAddress());
         Long index = getSessionIndex(ctx.channel());
         SessionManagerFactory.getClientSessionMananger().bindSessionContext(index,session);
+        synchronized (client){
+            client.setRunningState(true);
+            LOGGER.info("[CaviarClient] connect get resp. success");
+            client.notifyAll();
+        }
     }
 
     /**
      * 网络断连事件处理
+     * 1 清除连接Session
+     * 2 客户端断连重连
      */
-    private void dealWithDisconnected(NetworkEvent networkEvent, ChannelHandlerContext ctx){
+    private void dealWithDisconnected(NetworkEvent networkEvent, ChannelHandlerContext ctx) {
         LOGGER.info("[EventDispatcher] dealWithDisconnected");
         destroySession(ctx);
+        reconnect(ctx);
     }
 
     /**
      * 异常事件处理
+     * 1 清除连接Session
+     * 2 客户端断连重连
      */
     private void dealWithError(NetworkEvent networkEvent, ChannelHandlerContext ctx, Throwable e){
-        LOGGER.info("[EventDispatcher] dealWithError. e:{}",e);
+        LOGGER.info("[EventDispatcher] dealWithError. e:{}", e);
         destroySession(ctx);
+        reconnect(ctx);
     }
 
     /**
      * 心跳超时事件处理
+     * 1 清除连接Session
+     * 2 客户端断连重连
      */
     private void dealWithIdle(NetworkEvent networkEvent, ChannelHandlerContext ctx) {
         LOGGER.info("[EventDispatcher] dealWithIdle");
         destroySession(ctx);
+        reconnect(ctx);
     }
 
     /**
@@ -135,28 +154,53 @@ public class ClientEventDispatcher implements EventDispatcher{
         SessionContext sessionContext = ctx.channel().attr(NettySessionContext.session).get();
 
         if(msg.getMsgType().equals(MsgTypeEnum.CLIENT_LOGIN_RESP)){
-            caviarBizListener.CLIENT_LOGIN_RESP(sessionContext, msg.getMsgBody());
+            long requestId = msg.getRequestId();
+            RequestContext requestContext = RequestContextManager.getClientRequestContextManager().getRequestContext(requestId);
+            requestContext.setResponseMessage(msg);
+            synchronized (requestContext){
+                requestContext.notifyAll();
+            }
         }
         if(msg.getMsgType().equals(MsgTypeEnum.CLIENT_MSG_SEND_RESP)){
             caviarBizListener.CLIENT_MSG_SEND_RESP(sessionContext, msg.getMsgBody());
         }
         if(msg.getMsgType().equals(MsgTypeEnum.CLIENT_LOGOUT_RESP)){
-            caviarBizListener.CLIENT_LOGOUT_RESP(sessionContext, msg.getMsgBody());
+            long requestId = msg.getRequestId();
+            RequestContext requestContext = RequestContextManager.getClientRequestContextManager().getRequestContext(requestId);
+            requestContext.setResponseMessage(msg);
+            synchronized (requestContext){
+                requestContext.notifyAll();
+            }
         }
     }
 
     /**
      * 网络异常事件,销毁连接
      * 1 调用SessionManager解除连接与客户端映射关系
-     * 2 清理SessionContext,关闭Channel
-     * 3 关闭ChannelHandlerContext
+     * 2 清理SessionContext
+     * 3 销毁RequestContextMap
+     * 3 断连Client
      */
     private void destroySession(ChannelHandlerContext ctx){
         SessionContext session = ctx.channel().attr(NettySessionContext.session).get();
         long sessionIndex = session.getIndex();
         SessionManagerFactory.getClientSessionMananger().cleanSessionContext(sessionIndex);
-        ctx.close();
-        LOGGER.info("[caviarClient] clean client session. session:{}",session);
+
+        RequestContextManager.getClientRequestContextManager().cleanRequestContextAll();
+
+        this.client.disconnect();
+    }
+
+    /**
+     * 客户端断连重连
+     */
+    private void reconnect(ChannelHandlerContext ctx){
+        ctx.channel().eventLoop().schedule(new Runnable() {
+            @Override
+            public void run() {
+                client.reconnect();
+            }
+        }, 2, TimeUnit.SECONDS);
     }
 
 }

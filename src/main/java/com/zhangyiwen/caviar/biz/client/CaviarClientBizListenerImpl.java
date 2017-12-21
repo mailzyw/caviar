@@ -15,23 +15,8 @@ public class CaviarClientBizListenerImpl implements CaviarClientBizListener {
     private static final Logger LOGGER = LoggerFactory.getLogger(CaviarClientBizListenerImpl.class);
 
     @Override
-    public void CLIENT_LOGIN_RESP(SessionContext session, byte[] msg) {
-        LOGGER.info("[CLIENT_LOGIN_RESP] session:{}, msg:{}", session, String.valueOf(msg));
-        synchronized (session){
-            session.notifyAll();
-        }
-    }
-
-    @Override
     public void CLIENT_MSG_SEND_RESP(SessionContext session, byte[] msg) {
         LOGGER.info("[CLIENT_MSG_SEND_RESP] session:{}, msg:{}",session,String.valueOf(msg));
     }
 
-    @Override
-    public void CLIENT_LOGOUT_RESP(SessionContext session, byte[] msg) {
-        LOGGER.info("[CLIENT_LOGOUT_RESP] session:{}, msg:{}",session,String.valueOf(msg));
-        synchronized (session){
-            session.notifyAll();
-        }
-    }
 }

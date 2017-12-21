@@ -27,7 +27,7 @@ public class SessionManagerImpl implements SessionManager{
     public SessionContext bindSessionContext(long index, SessionContext session) {
         session.setIndex(index);
         SessionContext result = this.index2Session.put(index,session);
-        LOGGER.info("[session manager] bind session succeed. index:{}, session:{}", index, session);
+        LOGGER.info("[session manager] bind session succeed. mapSize:{}, index:{}, session:{}", index2Session.size(), index, session);
         return result;
     }
 
@@ -37,7 +37,7 @@ public class SessionManagerImpl implements SessionManager{
         if (session != null) {
             session.close();
         }
-        LOGGER.info("[session manager] clean session by index succeed. index:{}, session:{}", index, session);
+        LOGGER.info("[session manager] clean session by index succeed. mapSize:{}, index:{}, session:{}", index2Session.size(), index, session);
     }
 
 }
