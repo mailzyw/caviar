@@ -14,7 +14,7 @@ public class SessionManagerImpl implements SessionManager{
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SessionManagerImpl.class);
 
-    private Map<Long, SessionContext> index2Session = new ConcurrentSkipListMap<>();
+    private volatile Map<Long, SessionContext> index2Session = new ConcurrentSkipListMap<>();
 
     @Override
     public SessionContext getSessionContext(long index) {

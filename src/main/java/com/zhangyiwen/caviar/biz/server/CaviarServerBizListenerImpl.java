@@ -1,5 +1,6 @@
 package com.zhangyiwen.caviar.biz.server;
 
+import com.zhangyiwen.caviar.network.request.RequestContext;
 import com.zhangyiwen.caviar.network.server.CaviarServerBizListener;
 import com.zhangyiwen.caviar.network.session.SessionContext;
 import com.zhangyiwen.caviar.protocol.CaviarMessage;
@@ -15,33 +16,41 @@ public class CaviarServerBizListenerImpl implements CaviarServerBizListener {
     private static final Logger LOGGER = LoggerFactory.getLogger(CaviarServerBizListenerImpl.class);
 
     @Override
-    public void CLIENT_LOGIN_REQ(SessionContext session, byte[] msg) {
+    public void CLIENT_LOGIN_REQ(SessionContext session, RequestContext requestContext, byte[] msg) {
         LOGGER.info("[CLIENT_LOGIN_REQ] session:{}, msg:{}", session, String.valueOf(msg));
         CaviarMessage resp = CaviarMessage.CLIENT_LOGIN_RESP("login succeed".getBytes());
         try {
-            Thread.sleep(3000L);
+            Thread.sleep(2000L);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        session.writeAndFlush(resp);
+        session.response(requestContext, resp);
         LOGGER.info("[CLIENT_LOGIN_REQ] response to client. msg:{}", resp);
     }
 
     @Override
-    public void CLIENT_MSG_SEND_REQ(SessionContext session, byte[] msg) {
+    public void CLIENT_MSG_SEND_REQ(SessionContext session, RequestContext requestContext, byte[] msg) {
         LOGGER.info("[CLIENT_MSG_SEND_REQ] session:{}, msg:{}",session,String.valueOf(msg));
-    }
-
-    @Override
-    public void CLIENT_LOGOUT_REQ(SessionContext session, byte[] msg) {
-        LOGGER.info("[CLIENT_LOGOUT_REQ] session:{}, msg:{}",session,String.valueOf(msg));
-        CaviarMessage resp = CaviarMessage.CLIENT_LOGOUT_RESP("logout succeed".getBytes());
+        CaviarMessage resp = CaviarMessage.CLIENT_LOGOUT_RESP("process succeed".getBytes());
         try {
-            Thread.sleep(3000L);
+            Thread.sleep(2000L);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        session.writeAndFlush(resp);
+        session.response(requestContext, resp);
+        LOGGER.info("[CLIENT_MSG_SEND_REQ] response to client. msg:{}", resp);
+    }
+
+    @Override
+    public void CLIENT_LOGOUT_REQ(SessionContext session, RequestContext requestContext, byte[] msg) {
+        LOGGER.info("[CLIENT_LOGOUT_REQ] session:{}, msg:{}",session,String.valueOf(msg));
+        CaviarMessage resp = CaviarMessage.CLIENT_LOGOUT_RESP("logout succeed".getBytes());
+        try {
+            Thread.sleep(2000L);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        session.response(requestContext, resp);
         LOGGER.info("[CLIENT_LOGOUT_REQ] response to client. msg:{}", resp);
     }
 }

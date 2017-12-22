@@ -217,6 +217,7 @@ public class CaviarClient implements Client{
 
         RequestContext requestContextResp = RequestContextManager.getClientRequestContextManager().getRequestContext(requestId);
         CaviarMessage response = requestContextResp.getResponseMessage();
+        RequestContextManager.getClientRequestContextManager().cleanRequestContext(requestId);
         LOGGER.info("[CaviarClient] login end. resp:{}",response);
         if(response == null){
             throw CaviarNetworkException.CLIENT_EXEC_TIMEOUT;
@@ -249,6 +250,7 @@ public class CaviarClient implements Client{
 
         RequestContext requestContextResp = RequestContextManager.getClientRequestContextManager().getRequestContext(requestId);
         CaviarMessage response = requestContextResp.getResponseMessage();
+        RequestContextManager.getClientRequestContextManager().cleanRequestContext(requestId);
         LOGGER.info("[CaviarClient] logout end. resp:{}",response);
         if(response == null){
             throw CaviarNetworkException.CLIENT_EXEC_TIMEOUT;
@@ -257,11 +259,36 @@ public class CaviarClient implements Client{
     }
 
     @Override
-    public CaviarMessage sendMsgSync(byte[] msg) throws CaviarNetworkException {
+    public byte[] sendMsgSync(byte[] msg) throws CaviarNetworkException {
         if(!running){
             throw CaviarNetworkException.CLIENT_NOT_RUNNING;
         }
-        return null;
+        LOGGER.info("[CaviarClient] sendMsgSync start.");
+        CaviarMessage caviarMessage = CaviarMessage.CLIENT_MSG_SEND_REQ(msg);
+        SessionContext sessionContext = getSessionContext();
+
+        long requestId = caviarMessage.getRequestId();
+        RequestContext requestContext = new RequestContext(sessionContext.getIndex(),requestId,caviarMessage);
+        RequestContextManager.getClientRequestContextManager().bindRequestContext(requestId,requestContext);
+
+        sessionContext.writeAndFlush(caviarMessage);
+        try {
+            synchronized (requestContext){
+                LOGGER.info("[CaviarClient] sendMsgSync wait resp...");
+                requestContext.wait(timeout);
+            }
+        } catch (InterruptedException e) {
+            throw new CaviarNetworkException("sendMsgSync await done interrupted.");
+        }
+
+        RequestContext requestContextResp = RequestContextManager.getClientRequestContextManager().getRequestContext(requestId);
+        CaviarMessage response = requestContextResp.getResponseMessage();
+        RequestContextManager.getClientRequestContextManager().cleanRequestContext(requestId);
+        LOGGER.info("[CaviarClient] sendMsgSync end. resp:{}",response);
+        if(response == null){
+            throw CaviarNetworkException.CLIENT_EXEC_TIMEOUT;
+        }
+        return response.getMsgBody();
     }
 
     @Override

@@ -109,7 +109,6 @@ public class ClientEventDispatcher implements EventDispatcher{
         SessionManagerFactory.getClientSessionMananger().bindSessionContext(index,session);
         synchronized (client){
             client.setRunningState(true);
-            LOGGER.info("[CaviarClient] connect get resp. success");
             client.notifyAll();
         }
     }
@@ -153,23 +152,13 @@ public class ClientEventDispatcher implements EventDispatcher{
         SessionContext sessionContext = ctx.channel().attr(NettySessionContext.session).get();
 
         if(msg.getMsgType().equals(MsgTypeEnum.CLIENT_LOGIN_RESP)){
-            long requestId = msg.getRequestId();
-            RequestContext requestContext = RequestContextManager.getClientRequestContextManager().getRequestContext(requestId);
-            requestContext.setResponseMessage(msg);
-            synchronized (requestContext){
-                requestContext.notifyAll();
-            }
+            setRequestContextAndNotify(msg);
         }
         if(msg.getMsgType().equals(MsgTypeEnum.CLIENT_MSG_SEND_RESP)){
-            caviarBizListener.CLIENT_MSG_SEND_RESP(sessionContext, msg.getMsgBody());
+            setRequestContextAndNotify(msg);
         }
         if(msg.getMsgType().equals(MsgTypeEnum.CLIENT_LOGOUT_RESP)){
-            long requestId = msg.getRequestId();
-            RequestContext requestContext = RequestContextManager.getClientRequestContextManager().getRequestContext(requestId);
-            requestContext.setResponseMessage(msg);
-            synchronized (requestContext){
-                requestContext.notifyAll();
-            }
+            setRequestContextAndNotify(msg);
         }
         if(msg.getMsgType().equals(MsgTypeEnum.PONG)){
             LOGGER.info("[PONG] received pong msg:{}", String.valueOf(msg));
@@ -211,7 +200,16 @@ public class ClientEventDispatcher implements EventDispatcher{
      */
     private void sendPing(SessionContext sessionContext){
         sessionContext.writeAndFlush(CaviarMessage.PING());
-        LOGGER.info("[EventDispatcher] send Ping end.");
+        LOGGER.debug("[EventDispatcher] send Ping end.");
+    }
+
+    private void setRequestContextAndNotify(CaviarMessage msg){
+        long requestId = msg.getRequestId();
+        RequestContext requestContext = RequestContextManager.getClientRequestContextManager().getRequestContext(requestId);
+        requestContext.setResponseMessage(msg);
+        synchronized (requestContext){
+            requestContext.notifyAll();
+        }
     }
 
 }

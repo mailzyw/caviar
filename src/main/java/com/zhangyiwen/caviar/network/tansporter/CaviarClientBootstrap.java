@@ -28,7 +28,7 @@ public class CaviarClientBootstrap {
         int port = 7005;
 
         //connect
-        Client client = new CaviarClient(caviarBizListener,10*1000L);
+        Client client = new CaviarClient(caviarBizListener,5*1000L);
         try {
             client.connect(host, port);
         } catch (CaviarNetworkException e) {
@@ -37,11 +37,15 @@ public class CaviarClientBootstrap {
         }
 
         //login
-        client.login("login test".getBytes());
-        LOGGER.info("client login end.");
+        byte[] loginResp = client.login("login test".getBytes());
+        LOGGER.info("==========client login end.=========  loginResp:{}",String.valueOf(loginResp));
+
+        //login
+        byte[] sendSyncResp = client.sendMsgSync("send msg sync test".getBytes());
+        LOGGER.info("==========client send sync end.==========  sendSyncResp:{}",String.valueOf(sendSyncResp));
 
         //logout
-        client.logout("logout test".getBytes());
-        LOGGER.info("client logout end.");
+        byte[] logoutResp = client.logout("logout test".getBytes());
+        LOGGER.info("==========client logout end.==========  logoutResp:{}",String.valueOf(logoutResp));
     }
 }

@@ -1,6 +1,7 @@
 package com.zhangyiwen.caviar.network.dispatcher;
 
 import com.zhangyiwen.caviar.network.enu.NetworkEvent;
+import com.zhangyiwen.caviar.network.request.RequestContext;
 import com.zhangyiwen.caviar.network.server.CaviarServerBizListener;
 import com.zhangyiwen.caviar.network.session.NettySessionContext;
 import com.zhangyiwen.caviar.network.session.SessionContext;
@@ -65,7 +66,7 @@ public class ServerEventDispatcher implements EventDispatcher{
             }
         } catch (Exception e) {
             LOGGER.error("server dispatch network event error.",e);
-            this.dealWithError(NetworkEvent.onError,ctx,e);
+            this.dealWithError(NetworkEvent.onError, ctx, e);
         }
     }
 
@@ -99,7 +100,7 @@ public class ServerEventDispatcher implements EventDispatcher{
         Channel channel = ctx.channel();
         SessionContext session = new NettySessionContext(channel, (InetSocketAddress)ctx.channel().remoteAddress(), (InetSocketAddress)ctx.channel().localAddress());
         Long index = getSessionIndex(ctx.channel());
-        SessionManagerFactory.getServerSessionMananger().bindSessionContext(index,session);
+        SessionManagerFactory.getServerSessionMananger().bindSessionContext(index, session);
     }
 
     /**
@@ -134,13 +135,16 @@ public class ServerEventDispatcher implements EventDispatcher{
         SessionContext sessionContext = SessionManagerFactory.getServerSessionMananger().getSessionContext(index);
 
         if(msg.getMsgType().equals(MsgTypeEnum.CLIENT_LOGIN_REQ)){
-            caviarBizListener.CLIENT_LOGIN_REQ(sessionContext,msg.getMsgBody());
+            RequestContext requestContext = new RequestContext(index,msg.getRequestId(),msg);
+            caviarBizListener.CLIENT_LOGIN_REQ(sessionContext,requestContext,msg.getMsgBody());
         }
         if(msg.getMsgType().equals(MsgTypeEnum.CLIENT_MSG_SEND_REQ)){
-            caviarBizListener.CLIENT_MSG_SEND_REQ(sessionContext, msg.getMsgBody());
+            RequestContext requestContext = new RequestContext(index,msg.getRequestId(),msg);
+            caviarBizListener.CLIENT_MSG_SEND_REQ(sessionContext,requestContext,msg.getMsgBody());
         }
         if(msg.getMsgType().equals(MsgTypeEnum.CLIENT_LOGOUT_REQ)){
-            caviarBizListener.CLIENT_LOGOUT_REQ(sessionContext, msg.getMsgBody());
+            RequestContext requestContext = new RequestContext(index,msg.getRequestId(),msg);
+            caviarBizListener.CLIENT_LOGOUT_REQ(sessionContext,requestContext,msg.getMsgBody());
         }
         if(msg.getMsgType().equals(MsgTypeEnum.PING)){
             LOGGER.info("[PING] received ping msg:{}", String.valueOf(msg));
@@ -167,7 +171,6 @@ public class ServerEventDispatcher implements EventDispatcher{
      */
     private void sendPong(SessionContext sessionContext){
         sessionContext.writeAndFlush(CaviarMessage.PONG());
-        LOGGER.info("[EventDispatcher] send Pong end.");
+        LOGGER.debug("[EventDispatcher] send Pong end.");
     }
-
 }

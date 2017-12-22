@@ -59,7 +59,7 @@ public interface Client {
      * @param msg msg
      * @throws CaviarNetworkException
      */
-    CaviarMessage sendMsgSync(byte[] msg) throws CaviarNetworkException;
+    byte[] sendMsgSync(byte[] msg) throws CaviarNetworkException;
 
     /**
      * 发送消息——异步

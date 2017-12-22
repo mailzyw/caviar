@@ -1,5 +1,6 @@
 package com.zhangyiwen.caviar.network.session;
 
+import com.zhangyiwen.caviar.network.request.RequestContext;
 import com.zhangyiwen.caviar.protocol.CaviarMessage;
 import io.netty.channel.Channel;
 
@@ -23,6 +24,13 @@ public interface SessionContext {
      * @param message caviarMessage
      */
     void writeAndFlush(CaviarMessage message);
+
+    /**
+     * 发送响应消息
+     * @param requestContext 请求上下文
+     * @param message 响应消息
+     */
+    void response(RequestContext requestContext,CaviarMessage message);
 
     /**
      * 获取连接的远程地址

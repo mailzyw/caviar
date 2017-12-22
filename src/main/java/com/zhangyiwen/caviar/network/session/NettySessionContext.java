@@ -1,5 +1,6 @@
 package com.zhangyiwen.caviar.network.session;
 
+import com.zhangyiwen.caviar.network.request.RequestContext;
 import com.zhangyiwen.caviar.protocol.CaviarMessage;
 import io.netty.channel.Channel;
 import io.netty.util.AttributeKey;
@@ -44,6 +45,12 @@ public class NettySessionContext implements SessionContext{
                 channel.close();
             }
         });
+    }
+
+    @Override
+    public void response(RequestContext requestContext, CaviarMessage message) {
+        message.setRequestId(requestContext.getRequestId());
+        writeAndFlush(message);
     }
 
     public InetSocketAddress getRemoteAddress() {

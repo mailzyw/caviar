@@ -14,7 +14,7 @@ public class RequestContextManager {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RequestContextManager.class);
 
-    private Map<Long, RequestContext> index2Session = new ConcurrentSkipListMap<>();
+    private volatile Map<Long, RequestContext> index2Session = new ConcurrentSkipListMap<>();
 
     static class InstanceHolder{
         private static RequestContextManager serverInstance=new RequestContextManager();
