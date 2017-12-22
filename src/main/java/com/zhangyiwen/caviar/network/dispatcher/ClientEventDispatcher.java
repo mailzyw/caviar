@@ -62,8 +62,8 @@ public class ClientEventDispatcher implements EventDispatcher{
                 case onError:
                     dealWithError(networkEvent, ctx, (Throwable)msg);
                     break;
-                case onIdle:
-                    dealWithIdle(networkEvent, ctx);
+                case onWriteIdle:
+                    dealWithWriteIdle(networkEvent, ctx);
                     break;
                 case onMessage:
                     executor.execute(()->{
@@ -137,14 +137,13 @@ public class ClientEventDispatcher implements EventDispatcher{
     }
 
     /**
-     * 心跳超时事件处理
-     * 1 清除连接Session
-     * 2 客户端断连重连
+     * 客户端写心跳触发事件处理
+     * 1 发送Ping消息给服务端
      */
-    private void dealWithIdle(NetworkEvent networkEvent, ChannelHandlerContext ctx) {
-        LOGGER.info("[EventDispatcher] dealWithIdle");
-        destroySession(ctx);
-        reconnect(ctx);
+    private void dealWithWriteIdle(NetworkEvent networkEvent, ChannelHandlerContext ctx) {
+        LOGGER.info("[EventDispatcher] dealWithWriteIdle");
+        SessionContext sessionContext = ctx.channel().attr(NettySessionContext.session).get();
+        sendPing(sessionContext);
     }
 
     /**
@@ -171,6 +170,9 @@ public class ClientEventDispatcher implements EventDispatcher{
             synchronized (requestContext){
                 requestContext.notifyAll();
             }
+        }
+        if(msg.getMsgType().equals(MsgTypeEnum.PONG)){
+            LOGGER.info("[PONG] received pong msg:{}", String.valueOf(msg));
         }
     }
 
@@ -201,6 +203,15 @@ public class ClientEventDispatcher implements EventDispatcher{
                 client.reconnect();
             }
         }, 2, TimeUnit.SECONDS);
+    }
+
+    /**
+     * 发送Ping包
+     * @param sessionContext sessionContext
+     */
+    private void sendPing(SessionContext sessionContext){
+        sessionContext.writeAndFlush(CaviarMessage.PING());
+        LOGGER.info("[EventDispatcher] send Ping end.");
     }
 
 }

@@ -19,8 +19,8 @@ public enum MsgTypeEnum {
     SERVER_MSG_PUSH_RESP(2004),     //服务端消息推送
 
     //心跳消息
-    CLIENT_HEARTBEAT(9001),         //客户端Ping
-    SERVER_HEARTBEAT(9002),         //服务端Pong
+    PING(9001),         //客户端Ping
+    PONG(9002),         //服务端Pong
     ;
 
     private int code;

@@ -40,7 +40,7 @@ public class NettySessionContext implements SessionContext{
     public void writeAndFlush(CaviarMessage message) {
         channel.writeAndFlush(message).syncUninterruptibly().addListener(future -> {
             if (!future.isSuccess()) {
-                LOGGER.error("write and flush error. message:{}, sessionContext:{}, e:{}",message,session,future.cause());
+                LOGGER.error("[sessionContext] write and flush error. message:{}, sessionContext:{}, e:{}",message,session,future.cause());
                 channel.close();
             }
         });

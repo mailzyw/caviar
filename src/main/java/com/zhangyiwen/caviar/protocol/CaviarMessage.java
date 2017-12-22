@@ -28,6 +28,39 @@ public class CaviarMessage {
     private Integer         msgBodyLength;          //消息体长度
     private byte[]          msgBody;                //消息体
 
+
+    /**
+     * PING构造器
+     */
+    public static CaviarMessage PING(){
+        byte[] msgBody = "ping".getBytes();
+        CaviarMessage caviarMessage = new CaviarMessage();
+        caviarMessage.setRequestId(RequestIdGenerator.getRequestIdGenerator().nextGeneralizedId());
+        caviarMessage.setAddress(DEFAULT_INVALID_ADDRESS);
+        caviarMessage.setCrcCode(DEFAULT_CRC_CODE);
+        caviarMessage.setMsgType(MsgTypeEnum.PING);
+        caviarMessage.setCodecType(CodecTypeEnum.JSON);
+        caviarMessage.setMsgBodyLength(msgBody.length);
+        caviarMessage.setMsgBody(msgBody);
+        return caviarMessage;
+    }
+
+    /**
+     * PONG构造器
+     */
+    public static CaviarMessage PONG(){
+        byte[] msgBody = "pong".getBytes();
+        CaviarMessage caviarMessage = new CaviarMessage();
+        caviarMessage.setRequestId(RequestIdGenerator.getRequestIdGenerator().nextGeneralizedId());
+        caviarMessage.setAddress(DEFAULT_INVALID_ADDRESS);
+        caviarMessage.setCrcCode(DEFAULT_CRC_CODE);
+        caviarMessage.setMsgType(MsgTypeEnum.PONG);
+        caviarMessage.setCodecType(CodecTypeEnum.JSON);
+        caviarMessage.setMsgBodyLength(msgBody.length);
+        caviarMessage.setMsgBody(msgBody);
+        return caviarMessage;
+    }
+
     /**
      * CLIENT_LOGIN_REQ构造器
      */

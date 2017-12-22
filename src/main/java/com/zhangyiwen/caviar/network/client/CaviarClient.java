@@ -16,6 +16,7 @@ import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.timeout.IdleStateHandler;
 import lombok.Data;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.slf4j.Logger;
@@ -34,6 +35,8 @@ public class CaviarClient implements Client{
     private static final Logger LOGGER = LoggerFactory.getLogger(CaviarClient.class);
 
     private static final String WORKER_THREAD_NAME_PATTERN = "io-worker-%d";
+
+    private static final int WRITE_WAIT_SECONDS = 5;     // 设置5秒检测chanel是否发送过数据
 
     private volatile boolean running;           //Client连接成功状态
 
@@ -75,7 +78,7 @@ public class CaviarClient implements Client{
             @Override
             protected void initChannel(SocketChannel ch) throws Exception {
                 ChannelPipeline p = ch.pipeline();
-//                p.addLast("idle-handler",new IdleStateHandler(0, 10, 0, TimeUnit.SECONDS));
+                p.addLast("idle-handler",new IdleStateHandler(0, WRITE_WAIT_SECONDS, 0, TimeUnit.SECONDS));
                 p.addLast("connector-encoder", new CaviarEncoder());
                 p.addLast("connector-decoder", new CaviarDecoder());
                 p.addLast("msg-handler", eventHandler);
@@ -119,7 +122,7 @@ public class CaviarClient implements Client{
             @Override
             protected void initChannel(SocketChannel ch) throws Exception {
                 ChannelPipeline p = ch.pipeline();
-//                p.addLast("idle-handler",new IdleStateHandler(0, 10, 0, TimeUnit.SECONDS));
+                p.addLast("idle-handler",new IdleStateHandler(0, WRITE_WAIT_SECONDS, 0, TimeUnit.SECONDS));
                 p.addLast("connector-encoder", new CaviarEncoder());
                 p.addLast("connector-decoder", new CaviarDecoder());
                 p.addLast("msg-handler", eventHandler);

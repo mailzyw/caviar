@@ -32,6 +32,8 @@ public class CaviarServer implements Server {
 
     private static final String BOSS_THREAD_NAME_PATTERN = "io-boss-%d";
 
+    private static final int READ_WAIT_SECONDS = 10;     // 设置10秒检测chanel是否接受过数据
+
     private EventLoopGroup boss =
             new NioEventLoopGroup(1, new BasicThreadFactory.Builder().namingPattern(BOSS_THREAD_NAME_PATTERN).build());
 
@@ -71,7 +73,7 @@ public class CaviarServer implements Server {
                 @Override
                 protected void initChannel(SocketChannel ch) throws Exception {
                     ChannelPipeline p = ch.pipeline();
-//                    p.addLast("readIdlstate", new IdleStateHandler(10, 0, 0, TimeUnit.SECONDS));
+                    p.addLast("readIdlstate", new IdleStateHandler(READ_WAIT_SECONDS, 0, 0, TimeUnit.SECONDS));
                     p.addLast("connector-encoder", new CaviarEncoder());
                     p.addLast("connector-decoder", new CaviarDecoder());
                     p.addLast("event-handler", eventHandler);

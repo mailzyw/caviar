@@ -9,5 +9,6 @@ public enum  NetworkEvent {
     onConnected,
     onDisconnect,
     onError,
-    onIdle,
+    onReadIdle,
+    onWriteIdle,
 }

@@ -51,7 +51,11 @@ public class NetworkEventHandler extends SimpleChannelInboundHandler<CaviarMessa
             IdleStateEvent e = (IdleStateEvent) evt;
             if (e.state() == IdleState.READER_IDLE) {
                 LOGGER.debug("[userEventTriggered] idleStateEvent. remoteAdress:[{}],evt:[{}]", ctx.channel().remoteAddress(), evt);
-                dispatcher.dispatch(NetworkEvent.onIdle, ctx, null);
+                dispatcher.dispatch(NetworkEvent.onReadIdle, ctx, null);
+            }
+            if (e.state() == IdleState.WRITER_IDLE) {
+                LOGGER.debug("[userEventTriggered] idleStateEvent. remoteAdress:[{}],evt:[{}]", ctx.channel().remoteAddress(), evt);
+                dispatcher.dispatch(NetworkEvent.onWriteIdle, ctx, null);
             }
         }
     }
