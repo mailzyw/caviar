@@ -55,10 +55,6 @@ public class CaviarServer implements Server {
         this.eventHandler = new NetworkEventHandler(eventDispatcher);
     }
 
-    /**
-     * Bind操作
-     * @param port 监听端口
-     */
     @Override
     public void bind(int port) {
         if (port < 5000 || eventHandler == null) {
@@ -94,11 +90,8 @@ public class CaviarServer implements Server {
         }
     }
 
-    /**
-     * 关闭方法
-     * @throws IOException
-     */
-    private void close() throws IOException {
+    @Override
+    public void close() throws IOException {
         LOGGER.info("[CaviarServer] close start...");
         if (channel != null) {
             channel.close().awaitUninterruptibly();

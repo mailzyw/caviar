@@ -19,7 +19,7 @@ public class RequestContext {
 
     private CaviarMessage responseMessage;          //响应消息
 
-    private CaviarMsgCallback caviarMsgCallback;    //请求响应回调
+    private CaviarMsgCallback caviarMsgCallback;    //响应回调执行器
 
     private boolean isSync;                         //是否为同步请求
 

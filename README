@@ -8,57 +8,64 @@
 *资源优雅释放
 
 [一 功能设计]
-*caviar-client
-    |-客户端登录
-        |-可设置超时时间,抛Exception
-        |-返回成功|失败(失败原因)
-    |-客户端登出
-        |-可设置超时时间,抛Exception
-        |-返回成功|失败(失败原因)
-    |-发送消息给对端(异步)
-        |-可设置超时时间,抛Exception
-    |-接收消息(通知回调)
-    |-服务端心跳超时(通知回调)
-    |-被动登出(通知回调)
-        |-服务端检测客户端心跳超时
+*CaviarClient(caviar框架客户端)
+    |-实例化    --> CaviarClient(long timeout)
+        |-timeout为客户端连接/同步请求的超时时间
+    |-连接服务端  --> connect(String host, int port)
+        |-超时抛出CaviarNetworkException
+        |-成功后可以进行后续网络请求收发操作
+    |-关闭    --> close()
+        |-断连服务端
+        |-释放Client资源
+    |-登录/登出 -->login(byte[] loginMsg)/logout(byte[] logoutMsg)
+        |-单独抽出的请求响应消息类型,供使用者选择使用
+        |-超时抛出CaviarNetworkException
+        |-成功返回服务端响应
+    |-发送请求(同步)  --> sendMsgSync(byte[] msg)
+        |-服务端响应超时抛出CaviarNetworkException
+        |-成功返回服务端响应
+    |-发送请求(异步)  --> sendMsgAsync(byte[] msg, CaviarMsgCallback caviarMsgCallback)
+        |-提供回调扩展供使用者实现CaviarMsgCallback
+        |-成功执行回调逻辑
+        |-TODO 超时回调
 
-*caviar-server
-    |-服务端启动
-    |-服务端停止
-    |消息处理
-        |-客户端登录(通知回调)
-        |-客户端登出(通知回调)
-        |-客户端A发消息给B(通知回调)
-    |-主动踢出客户端
-    |-客户端断连/心跳超时(通知回调)
-    |-向客户端推送消息(异步)
+*CaviarServer(caviar框架服务端)
+    |-实例化   --> CaviarServer(CaviarServerBizListener caviarBizListener)
+        |-CaviarServerBizListener为使用者扩展,用于实现网络消息业务处理
+    |-启动    --> bind(int port)
+        |-启动成功后占用当前线程,直至关闭或产生异常
+    |-关闭    --> close()
+        |-关闭服务端,释放资源
+    |请求处理   --> CaviarServerBizListener为使用者扩展
+        |-处理登录请求:processClientLogin
+        |-处理登出请求:processClientLogout
+        |-处理请求消息:processClientMsg
+    |消息推送(TODO 主动向客户端推送消息,无需响应)
+
+*RequestContext(请求上下文)
+    |-sessionIndex:连接上下文唯一标识
+    |-requestId:请求唯一标识
+    |-requestMessage:请求消息
+    |-responseMessage:响应消息
+    |-caviarMsgCallback:回调执行器
+    |-isSync:是否为同步请求
+
+*SessionContext(连接上下文)
+    |-getChannel():获取网络通道
+    |-getRemoteAddress():获取通道远端地址
+    |-getLocalAddress():获取通道本端地址
+    |-writeAndFlush(CaviarMessage message):向通道发送消息
+    |-close():关闭通道,清理资源
+    |-发送响应消息:
+        |-sendClientLoginResp(RequestContext requestContext,byte[] respMessage)
+        |-sendClientLogoutResp(RequestContext requestContext,byte[] respMessage)
+        |-sendClientRequestResp(RequestContext requestContext,byte[] respMessage)
 
 [二 通信协议]
-*常见消息头关键字：
-    1）Accept、Authorization、Host
-    2）crcCode：版本号
-    3）length：消息长度
-    4）type：消息类型
-    5）接口名、方法名...
-    6）attachment：扩展字段
 *消息协议
     Long        address         消息发送端IP转换为的Long
     Integer     crcCode         版本号
-    Integer     msgType            消息类型
-                                    |-请求消息
-                                        |-客户端登录
-                                        |-客户端登出
-                                        |-客户端消息发送
-                                        |-服务端消息推送
-                                    |-应答消息
-                                        |-客户端登录
-                                        |-客户端登出
-                                        |-客户端消息发送
-                                        |-服务端消息推送
-                                    |-心跳消息
-                                        |-客户端Ping
-                                        |-服务端Pong
+    Integer     msgType         消息类型
     Integer     codeType        消息体序列化方式(0:json,1:xml)
     Integer     length          消息体长度
-
     byte[]      body            消息体
