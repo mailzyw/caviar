@@ -66,5 +66,5 @@ public interface Client {
      * @param msg msg
      * @throws CaviarNetworkException
      */
-    void sendMsgAsync(byte[] msg, CaviarMsgCallback caviarMsgCallback) throws CaviarNetworkException;
+    void sendMsgAsync(byte[] msg, CaviarMsgCallback caviarMsgCallback);
 }

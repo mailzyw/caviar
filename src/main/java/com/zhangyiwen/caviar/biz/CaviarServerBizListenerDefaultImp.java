@@ -32,7 +32,7 @@ public class CaviarServerBizListenerDefaultImp implements CaviarServerBizListene
     @Override
     public void processClientMsg(RequestContext requestContext, SessionContext sessionContext, byte[] msg) {
         try {
-            Thread.sleep(2000L);
+            Thread.sleep(10*1000L);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

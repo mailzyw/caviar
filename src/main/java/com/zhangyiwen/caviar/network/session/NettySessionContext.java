@@ -3,6 +3,8 @@ package com.zhangyiwen.caviar.network.session;
 import com.zhangyiwen.caviar.network.request.RequestContext;
 import com.zhangyiwen.caviar.protocol.CaviarMessage;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
 import io.netty.util.AttributeKey;
 import lombok.ToString;
 import org.slf4j.Logger;

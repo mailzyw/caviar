@@ -1,7 +1,7 @@
 ==========Caviar(网络通信框架)==========
 
 [一 功能设计]
-提供上层API,屏蔽底层NIO框架,屏蔽底层通信细节
+提供上层API,屏蔽底层NIO框架,屏蔽底层通信细
 
 *CaviarClient(caviar框架客户端)
     |-实例化    --> CaviarClient(long timeout)
@@ -21,8 +21,8 @@
         |-成功返回服务端响应
     |-发送请求(异步)  --> sendMsgAsync(byte[] msg, CaviarMsgCallback caviarMsgCallback)
         |-提供回调扩展供使用者实现CaviarMsgCallback
-        |-成功执行回调逻辑
-        |-TODO 超时回调
+        |-成功执行回调成功逻辑
+        |-超时执行回调超时逻辑    //TODO 目前使用ScheduledExecutorService实现,不知是否标准
 
 *CaviarServer(caviar框架服务端)
     |-实例化   --> CaviarServer(CaviarServerBizListener caviarBizListener)

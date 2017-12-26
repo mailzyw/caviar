@@ -19,9 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 /**
  * Created by zhangyiwen on 2017/12/15.
@@ -32,7 +30,7 @@ public class ClientEventDispatcher implements EventDispatcher{
     private static final Logger LOGGER = LoggerFactory.getLogger(ClientEventDispatcher.class);
 
     private static final ExecutorService executor =
-            Executors.newFixedThreadPool(64, new BasicThreadFactory.Builder().namingPattern("server-event-dispatcher-%d").build());
+            Executors.newFixedThreadPool(64, new BasicThreadFactory.Builder().namingPattern("server-event-dispatcher-%d").build());     //消息处理线程池
 
     private static final ExecutorService callBackExecutor =
             Executors.newFixedThreadPool(32, new BasicThreadFactory.Builder().namingPattern("server-event-dispatcher-%d").build());
@@ -155,6 +153,10 @@ public class ClientEventDispatcher implements EventDispatcher{
         if(msg.getMsgType().equals(MsgTypeEnum.CLIENT_MSG_SEND_RESP)){
             long requestId = msg.getRequestId();
             RequestContext requestContext = RequestContextManager.getClientRequestContextManager().getRequestContext(requestId);
+            if(requestContext == null || (!requestContext.markRespHandled())){
+                LOGGER.warn("[EventDispatcher] requestContext has bean handled. requestId:{}, requestContext:{}",requestId, requestContext);
+                return;
+            }
             if(requestContext.isSync()){
                 setRequestContextAndNotify(msg);
             }
@@ -211,8 +213,8 @@ public class ClientEventDispatcher implements EventDispatcher{
     private void setRequestContextAndNotify(CaviarMessage msg){
         long requestId = msg.getRequestId();
         RequestContext requestContext = RequestContextManager.getClientRequestContextManager().getRequestContext(requestId);
-        requestContext.setResponseMessage(msg);
         synchronized (requestContext){
+            requestContext.setResponseMessage(msg);
             requestContext.notifyAll();
         }
     }
@@ -222,18 +224,9 @@ public class ClientEventDispatcher implements EventDispatcher{
         RequestContext requestContext = RequestContextManager.getClientRequestContextManager().getRequestContext(requestId);
         requestContext.setResponseMessage(msg);
         CaviarMsgCallback msgCallback = requestContext.getCaviarMsgCallback();
-
-        //TODO 这种回调执行是应该放在IO线程中还是应该放在单独线程池中?
-        callBackExecutor.execute(new Runnable() {
-            @Override
-            public void run() {
-                LOGGER.info("[MsgCallback] msg callback deal start. requestId:{}, resp:{}", requestId, msg);
-                msgCallback.dealMsgCallback(msg);
-            }
-        });
-
+        LOGGER.info("[MsgCallback] msg callback deal start. requestId:{}, resp:{}", requestId, msg);
         RequestContextManager.getClientRequestContextManager().cleanRequestContext(requestId);
-        LOGGER.debug("[CaviarClient] sendMsgASync end. requestId:{}, resp:{}", requestId, msg);
+        msgCallback.dealRequestCallback(msg.getMsgBody());
     }
 
 }

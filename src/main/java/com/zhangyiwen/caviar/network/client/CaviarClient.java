@@ -23,6 +23,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -43,6 +45,8 @@ public class CaviarClient implements Client{
     private EventLoopGroup worker =
             new NioEventLoopGroup(Runtime.getRuntime().availableProcessors() + 1, new BasicThreadFactory.Builder().namingPattern(WORKER_THREAD_NAME_PATTERN).build());
 
+    ScheduledExecutorService callBackTimeoutExecutor = Executors.newScheduledThreadPool(Runtime.getRuntime().availableProcessors()*2 + 1);     //异步超时监听线程池
+
     private EventDispatcher eventDispatcher;
 
     private ChannelHandler eventHandler;
@@ -55,12 +59,14 @@ public class CaviarClient implements Client{
 
     private int port;
 
-    private long timeout;                        //超时时间
+    private long connectTimeout;                        //连接超时时间
+    private long requestTimeout;                        //请求超时时间
 
-    public CaviarClient(long timeout) {
+    public CaviarClient(long connectTimeout,long requestTimeout) {
         this.eventDispatcher = new ClientEventDispatcher(this);
         this.eventHandler = new NetworkEventHandler(eventDispatcher);
-        this.timeout = timeout;
+        this.connectTimeout = connectTimeout;
+        this.requestTimeout = requestTimeout;
     }
 
     //==================== network ====================>
@@ -101,7 +107,7 @@ public class CaviarClient implements Client{
         try {
             synchronized (this){
                 LOGGER.info("[CaviarClient] connect wait resp...");
-                this.wait(timeout);
+                this.wait(connectTimeout);
             }
         } catch (InterruptedException e) {
             throw new CaviarNetworkException("connect await done interrupted.");
@@ -143,7 +149,7 @@ public class CaviarClient implements Client{
         try {
             synchronized (this){
                 LOGGER.info("[CaviarClient] reconnect wait resp...");
-                this.wait(timeout);
+                this.wait(connectTimeout);
             }
         } catch (InterruptedException e) {
             running = false;
@@ -209,7 +215,7 @@ public class CaviarClient implements Client{
         try {
             synchronized (requestContext){
                 LOGGER.info("[CaviarClient] login wait resp...");
-                requestContext.wait(timeout);
+                requestContext.wait(requestTimeout);
             }
         } catch (InterruptedException e) {
             throw new CaviarNetworkException("login await done interrupted.");
@@ -242,7 +248,7 @@ public class CaviarClient implements Client{
         try {
             synchronized (requestContext){
                 LOGGER.info("[CaviarClient] logout wait resp...");
-                requestContext.wait(timeout);
+                requestContext.wait(requestTimeout);
             }
         } catch (InterruptedException e) {
             throw new CaviarNetworkException("logout await done interrupted.");
@@ -275,7 +281,7 @@ public class CaviarClient implements Client{
         try {
             synchronized (requestContext){
                 LOGGER.info("[CaviarClient] sendMsgSync wait resp...");
-                requestContext.wait(timeout);
+                requestContext.wait(requestTimeout);
             }
         } catch (InterruptedException e) {
             throw new CaviarNetworkException("sendMsgSync await done interrupted.");
@@ -292,7 +298,7 @@ public class CaviarClient implements Client{
     }
 
     @Override
-    public void sendMsgAsync(byte[] msg, CaviarMsgCallback caviarMsgCallback) throws CaviarNetworkException {
+    public void sendMsgAsync(byte[] msg, CaviarMsgCallback caviarMsgCallback) {
         if(!running){
             throw CaviarNetworkException.CLIENT_NOT_RUNNING;
         }
@@ -302,9 +308,22 @@ public class CaviarClient implements Client{
 
         long requestId = caviarMessage.getRequestId();
         RequestContext requestContext = new RequestContext(sessionContext.getIndex(),requestId,caviarMessage,caviarMsgCallback);
-        RequestContextManager.getClientRequestContextManager().bindRequestContext(requestId,requestContext);
+        RequestContextManager.getClientRequestContextManager().bindRequestContext(requestId, requestContext);
 
         sessionContext.writeAndFlush(caviarMessage);
+
+        callBackTimeoutExecutor.schedule(new Runnable() {
+            @Override
+            public void run() {
+                LOGGER.info("[CaviarClient] sendMsgAsync timeout. requestId:{},msg:{}", requestId, msg);
+                RequestContext timeoutRequestContext = RequestContextManager.getClientRequestContextManager().getRequestContext(requestId);
+                if (timeoutRequestContext != null && timeoutRequestContext.markRespHandled()) {
+                    timeoutRequestContext.setRespHandled(true);
+                    RequestContextManager.getClientRequestContextManager().cleanRequestContext(requestId);
+                    caviarMsgCallback.dealRequestTimeout(msg);
+                }
+            }
+        }, requestTimeout, TimeUnit.MICROSECONDS);
     }
 
     /**

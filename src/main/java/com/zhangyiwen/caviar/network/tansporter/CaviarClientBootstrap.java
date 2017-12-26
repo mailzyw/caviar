@@ -25,9 +25,10 @@ public class CaviarClientBootstrap {
         //prepare
         String host = "127.0.0.1";
         int port = 7005;
+        long timeout = 5000L;
 
         //connect
-        Client client = new CaviarClient(5*1000L);
+        Client client = new CaviarClient(timeout,timeout);
         try {
             client.connect(host, port);
         } catch (CaviarNetworkException e) {
@@ -40,17 +41,30 @@ public class CaviarClientBootstrap {
         LOGGER.info("==========client login end.=========  loginResp:{}",String.valueOf(loginResp));
 
         //sendMsgSync
-        byte[] sendSyncResp = client.sendMsgSync("send msg sync test".getBytes());
-        LOGGER.info("==========client send sync end.==========  sendSyncResp:{}",String.valueOf(sendSyncResp));
+        try {
+            byte[] sendSyncResp = client.sendMsgSync("send msg sync test".getBytes());
+            LOGGER.info("==========client send sync end.==========  sendSyncResp:{}",String.valueOf(sendSyncResp));
+        } catch (CaviarNetworkException e) {
+            e.printStackTrace();
+        }
 
         //sendMsgAsync
         for(int i=0;i<3;i++){
-            client.sendMsgAsync(("send msg async test" + i).getBytes(), new CaviarMsgCallback() {
-                @Override
-                public void dealMsgCallback(CaviarMessage msg) {
-                    LOGGER.info("[MsgCallback] get resp. msg:{}", msg);
-                }
-            });
+            try {
+                client.sendMsgAsync(("send msg async test" + i).getBytes(), new CaviarMsgCallback() {
+                    @Override
+                    public void dealRequestCallback(byte[] msg) {
+                        LOGGER.info("[MsgCallback] get resp. msg:{}", msg);
+                    }
+
+                    @Override
+                    public void dealRequestTimeout(byte[] msg) {
+                        LOGGER.info("[MsgCallback] resp timeout. request:{}", msg);
+                    }
+                });
+            } catch (CaviarNetworkException e) {
+                e.printStackTrace();
+            }
         }
         LOGGER.info("==========client send async end.==========");
 

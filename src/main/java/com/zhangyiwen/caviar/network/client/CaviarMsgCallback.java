@@ -1,6 +1,5 @@
 package com.zhangyiwen.caviar.network.client;
 
-import com.zhangyiwen.caviar.protocol.CaviarMessage;
 
 /**
  * Created by zhangyiwen on 2017/12/19.
@@ -9,8 +8,14 @@ import com.zhangyiwen.caviar.protocol.CaviarMessage;
 public interface CaviarMsgCallback {
 
     /**
-     * 消息发送响应Callback
+     * 响应Callback
      */
-    void dealMsgCallback(CaviarMessage msg);
+    void dealRequestCallback(byte[] msg);
+
+    /**
+     * 响应超时Callback
+     * @param msg
+     */
+    void dealRequestTimeout(byte[] msg);
 
 }
