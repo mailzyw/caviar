@@ -1,13 +1,8 @@
-==========caviar sdk==========
-[零 可靠性设计]
-*客户端连接超时
-*客户端断连重连
-*客户端重复登录保护
-*消息缓存重发
-*心跳检测
-*资源优雅释放
+==========Caviar(网络通信框架)==========
 
 [一 功能设计]
+提供上层API,屏蔽底层NIO框架,屏蔽底层通信细节
+
 *CaviarClient(caviar框架客户端)
     |-实例化    --> CaviarClient(long timeout)
         |-timeout为客户端连接/同步请求的超时时间
@@ -69,3 +64,43 @@
     Integer     codeType        消息体序列化方式(0:json,1:xml)
     Integer     length          消息体长度
     byte[]      body            消息体
+
+*消息类型
+    |-请求消息
+        |-CLIENT_LOGIN_REQ(1001),                 //客户端登录
+        |-CLIENT_LOGOUT_REQ(1002),                //客户端登出
+        |-CLIENT_MSG_SEND_REQ(1003),              //客户端消息发送——同步
+        |-CLIENT_MSG_SEND_ASYNC_REQ(1004),        //客户端消息发送——异步回调
+    |-响应消息
+        |-CLIENT_LOGIN_RESP(2001),                //客户端登录
+        |-CLIENT_LOGOUT_RESP(2002),               //客户端登出
+        |-CLIENT_MSG_SEND_RESP(2003),             //客户端消息发送
+    |-心跳消息
+        |-PING(9001),                             //客户端Ping
+        |-PONG(9002),                             //服务端Pong
+
+[三 可靠性设计]
+*客户端连接/请求超时
+    |-CaviarClient支持设置执行超时时间,执行connect或请求超时后抛出CaviarNetworkException
+*客户端断连重连
+    |-CaviarClient监测断连及错误事件,事件产生时执行断连逻辑释放资源,然后自动重连服务端直至成功
+*心跳检测
+    |-客户端与服务端之间发送Ping/Pong包,心跳超时则服务端自动断连对应客户端
+*资源优雅释放
+    |-基于Netty实现资源优雅释放,网络断连时会自动释放对应通道资源
+*客户端重复登录保护
+    |-由使用者自己灵活实现
+*消息缓存重发
+    |-TODO
+
+[四 性能设计]
+*IO模型(基于Netty的非阻塞IO)
+    |-底层基于Selector的多路复用实现,非阻塞IO,连接与线程解耦,高性能
+    |-IO读写时,采用DirectByteBuffer存储数据,引入Buffer池,减少内存数据拷贝
+*通信线程模型(基于Netty的Reactor模型)
+    |-专门的NIO线程Acceptor负责监听服务端,接收客户端的TCP连接请求
+    |-IO读写事件由NIO线程池负责
+    |-无锁化串行设计,一个NIO线程同时处理多条链路,一个链路只由一个NIO线程处理
+*序列化框架
+    |-Caviar消息协议直接基于byte数组进行序列化/反序列化,简单高效
+    |-业务消息体直接定义为byte数组,将编解码操作开放给使用者自行实现
