@@ -22,8 +22,8 @@ public class NettySessionContext implements SessionContext{
 
     public static final AttributeKey<SessionContext> session = AttributeKey.valueOf("session");
 
-    private long index;                         //连接唯一标识,用于标识连接的对端信息(host,port,server/client)
-    private final Channel channel;              //netty Channel
+    private long index;                             //连接唯一标识,用于标识连接的对端信息(host,port,server/client)
+    private final Channel channel;                  //netty Channel
     private InetSocketAddress remoteAddress;        //连接的远程地址
     private InetSocketAddress localAddress;         //连接的本地地址
 
@@ -48,7 +48,24 @@ public class NettySessionContext implements SessionContext{
     }
 
     @Override
-    public void response(RequestContext requestContext, CaviarMessage message) {
+    public void sendClientLoginResp(RequestContext requestContext, byte[] respMessage) {
+        CaviarMessage resp = CaviarMessage.CLIENT_LOGIN_RESP(respMessage);
+        response(requestContext, resp);
+    }
+
+    @Override
+    public void sendClientLogoutResp(RequestContext requestContext, byte[] respMessage) {
+        CaviarMessage resp = CaviarMessage.CLIENT_LOGOUT_RESP(respMessage);
+        response(requestContext, resp);
+    }
+
+    @Override
+    public void sendClientRequestResp(RequestContext requestContext, byte[] respMessage) {
+        CaviarMessage resp = CaviarMessage.CLIENT_MSG_SEND_RESP(respMessage);
+        response(requestContext, resp);
+    }
+
+    private void response(RequestContext requestContext, CaviarMessage message) {
         message.setRequestId(requestContext.getRequestId());
         writeAndFlush(message);
     }

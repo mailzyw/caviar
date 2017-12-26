@@ -26,11 +26,25 @@ public interface SessionContext {
     void writeAndFlush(CaviarMessage message);
 
     /**
-     * 发送响应消息
+     * 发送响应消息——客户端登录
      * @param requestContext 请求上下文
-     * @param message 响应消息
+     * @param respMessage 响应消息
      */
-    void response(RequestContext requestContext,CaviarMessage message);
+    void sendClientLoginResp(RequestContext requestContext,byte[] respMessage);
+
+    /**
+     * 发送响应消息——客户端登出
+     * @param requestContext 请求上下文
+     * @param respMessage 响应消息
+     */
+    void sendClientLogoutResp(RequestContext requestContext,byte[] respMessage);
+
+    /**
+     * 发送响应消息——客户端请求消息
+     * @param requestContext 请求上下文
+     * @param respMessage 响应消息
+     */
+    void sendClientRequestResp(RequestContext requestContext,byte[] respMessage);
 
     /**
      * 获取连接的远程地址

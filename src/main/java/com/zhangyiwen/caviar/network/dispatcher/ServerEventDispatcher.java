@@ -136,15 +136,23 @@ public class ServerEventDispatcher implements EventDispatcher{
 
         if(msg.getMsgType().equals(MsgTypeEnum.CLIENT_LOGIN_REQ)){
             RequestContext requestContext = new RequestContext(index,msg.getRequestId(),msg);
-            caviarBizListener.CLIENT_LOGIN_REQ(sessionContext,requestContext,msg.getMsgBody());
+            LOGGER.info("[CLIENT_LOGIN_REQ] requestContext:{}, session:{}", requestContext, sessionContext);
+            caviarBizListener.processClientLogin(requestContext, sessionContext, msg.getMsgBody());
         }
         if(msg.getMsgType().equals(MsgTypeEnum.CLIENT_MSG_SEND_REQ)){
             RequestContext requestContext = new RequestContext(index,msg.getRequestId(),msg);
-            caviarBizListener.CLIENT_MSG_SEND_REQ(sessionContext,requestContext,msg.getMsgBody());
+            LOGGER.info("[CLIENT_MSG_SEND_REQ] requestContext:{}, session:{}",requestContext, sessionContext);
+            caviarBizListener.processClientMsg(requestContext, sessionContext, msg.getMsgBody());
+        }
+        if(msg.getMsgType().equals(MsgTypeEnum.CLIENT_MSG_SEND_ASYNC_REQ)){
+            RequestContext requestContext = new RequestContext(index,msg.getRequestId(),msg);
+            LOGGER.info("[CLIENT_MSG_SEND_ASYNC_REQ] requestContext:{}, session:{}", requestContext, sessionContext);
+            caviarBizListener.processClientMsg(requestContext, sessionContext, msg.getMsgBody());
         }
         if(msg.getMsgType().equals(MsgTypeEnum.CLIENT_LOGOUT_REQ)){
             RequestContext requestContext = new RequestContext(index,msg.getRequestId(),msg);
-            caviarBizListener.CLIENT_LOGOUT_REQ(sessionContext,requestContext,msg.getMsgBody());
+            LOGGER.info("[CLIENT_LOGOUT_REQ] requestContext:{}, session:{}", requestContext, sessionContext);
+            caviarBizListener.processClientLogout(requestContext, sessionContext, msg.getMsgBody());
         }
         if(msg.getMsgType().equals(MsgTypeEnum.PING)){
             LOGGER.info("[PING] received ping msg:{}", String.valueOf(msg));

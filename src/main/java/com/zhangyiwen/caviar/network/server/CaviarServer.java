@@ -98,8 +98,7 @@ public class CaviarServer implements Server {
      * 关闭方法
      * @throws IOException
      */
-    @Override
-    public void close() throws IOException {
+    private void close() throws IOException {
         LOGGER.info("[CaviarServer] close start...");
         if (channel != null) {
             channel.close().awaitUninterruptibly();

@@ -59,7 +59,7 @@ public class RequestContextManager {
      */
     public RequestContext getRequestContext(long requestId){
         RequestContext context = this.index2Session.get(requestId);
-        LOGGER.info("[request manager] get context succeed. requestId:{}, context:{}", requestId, context);
+        LOGGER.debug("[request manager] get context succeed. requestId:{}, context:{}", requestId, context);
         return context;
     }
 

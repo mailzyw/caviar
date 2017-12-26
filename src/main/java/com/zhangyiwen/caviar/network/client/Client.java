@@ -19,6 +19,12 @@ public interface Client {
     void connect(String host, int port) throws CaviarNetworkException;
 
     /**
+     * 关闭客户端
+     * @throws IOException
+     */
+    void close() throws IOException;
+
+    /**
      * 重连服务端
      */
     void reconnect();
@@ -27,12 +33,6 @@ public interface Client {
      * 断连服务端
      */
     void disconnect();
-
-    /**
-     * 关闭客户端
-     * @throws IOException
-     */
-    void close() throws IOException;
 
     /**
      * 设置客户端运行状态

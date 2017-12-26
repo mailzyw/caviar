@@ -11,6 +11,6 @@ public interface CaviarMsgCallback {
     /**
      * 消息发送响应Callback
      */
-    void CLIENT_MSG_SEND_RESP(CaviarMessage msg);
+    void dealMsgCallback(CaviarMessage msg);
 
 }

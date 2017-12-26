@@ -2,27 +2,26 @@ package com.zhangyiwen.caviar.network.server;
 
 import com.zhangyiwen.caviar.network.request.RequestContext;
 import com.zhangyiwen.caviar.network.session.SessionContext;
-import com.zhangyiwen.caviar.protocol.CaviarMessage;
 
 /**
  * Created by zhangyiwen on 2017/12/19.
- * 网络事件业务回调接口
+ * 网络事件业务处理器
  */
 public interface CaviarServerBizListener {
 
     /**
-     * 客户端登录
+     * 处理客户端登录请求
      */
-    void CLIENT_LOGIN_REQ(SessionContext session, RequestContext requestContext, byte[] msg);
+    void processClientLogin(RequestContext requestContext, SessionContext sessionContext, byte[] msg);
 
     /**
-     * 客户端消息发送
+     * 处理客户端登出请求
      */
-    void CLIENT_MSG_SEND_REQ(SessionContext session, RequestContext requestContext, byte[] msg);
+    void processClientLogout(RequestContext requestContext, SessionContext sessionContext, byte[] msg);
 
     /**
-     * 客户端登出
+     * 处理客户端请求消息
      */
-    void CLIENT_LOGOUT_REQ(SessionContext session, RequestContext requestContext, byte[] msg);
+    void processClientMsg(RequestContext requestContext, SessionContext sessionContext, byte[] msg);
 
 }

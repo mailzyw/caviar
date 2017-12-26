@@ -19,7 +19,7 @@ public class SessionManagerImpl implements SessionManager{
     @Override
     public SessionContext getSessionContext(long index) {
         SessionContext session = this.index2Session.get(index);
-        LOGGER.info("[session manager] get session succeed. index:{}, session:{}", index, session);
+        LOGGER.debug("[session manager] get session succeed. index:{}, session:{}", index, session);
         return session;
     }
 

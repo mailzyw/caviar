@@ -1,6 +1,6 @@
 package com.zhangyiwen.caviar.network.dispatcher;
 
-import com.zhangyiwen.caviar.network.client.CaviarClientBizListener;
+import com.zhangyiwen.caviar.network.client.CaviarMsgCallback;
 import com.zhangyiwen.caviar.network.client.Client;
 import com.zhangyiwen.caviar.network.enu.NetworkEvent;
 import com.zhangyiwen.caviar.network.request.RequestContext;
@@ -32,14 +32,14 @@ public class ClientEventDispatcher implements EventDispatcher{
     private static final Logger LOGGER = LoggerFactory.getLogger(ClientEventDispatcher.class);
 
     private static final ExecutorService executor =
-            Executors.newFixedThreadPool(128, new BasicThreadFactory.Builder().namingPattern("server-event-dispatcher-%d").build());
+            Executors.newFixedThreadPool(64, new BasicThreadFactory.Builder().namingPattern("server-event-dispatcher-%d").build());
 
-    private CaviarClientBizListener caviarBizListener;      //消息监听器,业务方实现
+    private static final ExecutorService callBackExecutor =
+            Executors.newFixedThreadPool(32, new BasicThreadFactory.Builder().namingPattern("server-event-dispatcher-%d").build());
 
     private Client client;                                  //网络客户端
 
-    public ClientEventDispatcher(CaviarClientBizListener caviarBizListener, Client client) {
-        this.caviarBizListener = caviarBizListener;
+    public ClientEventDispatcher(Client client) {
         this.client = client;
     }
 
@@ -72,7 +72,7 @@ public class ClientEventDispatcher implements EventDispatcher{
             }
         } catch (Exception e) {
             LOGGER.error("server dispatch network event error.",e);
-            this.dealWithError(NetworkEvent.onError,ctx,e);
+            this.dealWithError(NetworkEvent.onError, ctx, e);
         }
     }
 
@@ -106,7 +106,7 @@ public class ClientEventDispatcher implements EventDispatcher{
         Channel channel = ctx.channel();
         SessionContext session = new NettySessionContext(channel, (InetSocketAddress)ctx.channel().remoteAddress(), (InetSocketAddress)ctx.channel().localAddress());
         Long index = getSessionIndex(ctx.channel());
-        SessionManagerFactory.getClientSessionMananger().bindSessionContext(index,session);
+        SessionManagerFactory.getClientSessionMananger().bindSessionContext(index, session);
         synchronized (client){
             client.setRunningState(true);
             client.notifyAll();
@@ -149,13 +149,19 @@ public class ClientEventDispatcher implements EventDispatcher{
      * 消息事件处理
      */
     private void dealWithMessage(NetworkEvent networkEvent, ChannelHandlerContext ctx, CaviarMessage msg) {
-        SessionContext sessionContext = ctx.channel().attr(NettySessionContext.session).get();
-
         if(msg.getMsgType().equals(MsgTypeEnum.CLIENT_LOGIN_RESP)){
             setRequestContextAndNotify(msg);
         }
         if(msg.getMsgType().equals(MsgTypeEnum.CLIENT_MSG_SEND_RESP)){
-            setRequestContextAndNotify(msg);
+            long requestId = msg.getRequestId();
+            RequestContext requestContext = RequestContextManager.getClientRequestContextManager().getRequestContext(requestId);
+            if(requestContext.isSync()){
+                setRequestContextAndNotify(msg);
+            }
+            else {
+                dealCallbackMsg(msg);
+            }
+
         }
         if(msg.getMsgType().equals(MsgTypeEnum.CLIENT_LOGOUT_RESP)){
             setRequestContextAndNotify(msg);
@@ -163,6 +169,7 @@ public class ClientEventDispatcher implements EventDispatcher{
         if(msg.getMsgType().equals(MsgTypeEnum.PONG)){
             LOGGER.info("[PONG] received pong msg:{}", String.valueOf(msg));
         }
+
     }
 
     /**
@@ -176,9 +183,7 @@ public class ClientEventDispatcher implements EventDispatcher{
         SessionContext session = ctx.channel().attr(NettySessionContext.session).get();
         long sessionIndex = session.getIndex();
         SessionManagerFactory.getClientSessionMananger().cleanSessionContext(sessionIndex);
-
         RequestContextManager.getClientRequestContextManager().cleanRequestContextAll();
-
         this.client.disconnect();
     }
 
@@ -210,6 +215,25 @@ public class ClientEventDispatcher implements EventDispatcher{
         synchronized (requestContext){
             requestContext.notifyAll();
         }
+    }
+
+    private void dealCallbackMsg(CaviarMessage msg){
+        long requestId = msg.getRequestId();
+        RequestContext requestContext = RequestContextManager.getClientRequestContextManager().getRequestContext(requestId);
+        requestContext.setResponseMessage(msg);
+        CaviarMsgCallback msgCallback = requestContext.getCaviarMsgCallback();
+
+        //TODO 这种回调执行是应该放在IO线程中还是应该放在单独线程池中?
+        callBackExecutor.execute(new Runnable() {
+            @Override
+            public void run() {
+                LOGGER.info("[MsgCallback] msg callback deal start. requestId:{}, resp:{}", requestId, msg);
+                msgCallback.dealMsgCallback(msg);
+            }
+        });
+
+        RequestContextManager.getClientRequestContextManager().cleanRequestContext(requestId);
+        LOGGER.debug("[CaviarClient] sendMsgASync end. requestId:{}, resp:{}", requestId, msg);
     }
 
 }

@@ -57,8 +57,8 @@ public class CaviarClient implements Client{
 
     private long timeout;                        //超时时间
 
-    public CaviarClient(CaviarClientBizListener caviarBizListener, long timeout) {
-        this.eventDispatcher = new ClientEventDispatcher(caviarBizListener,this);
+    public CaviarClient(long timeout) {
+        this.eventDispatcher = new ClientEventDispatcher(this);
         this.eventHandler = new NetworkEventHandler(eventDispatcher);
         this.timeout = timeout;
     }
@@ -296,6 +296,15 @@ public class CaviarClient implements Client{
         if(!running){
             throw CaviarNetworkException.CLIENT_NOT_RUNNING;
         }
+        LOGGER.info("[CaviarClient] sendMsgAsync start.");
+        CaviarMessage caviarMessage = CaviarMessage.CLIENT_MSG_SEND_ASYNC_REQ(msg);
+        SessionContext sessionContext = getSessionContext();
+
+        long requestId = caviarMessage.getRequestId();
+        RequestContext requestContext = new RequestContext(sessionContext.getIndex(),requestId,caviarMessage,caviarMsgCallback);
+        RequestContextManager.getClientRequestContextManager().bindRequestContext(requestId,requestContext);
+
+        sessionContext.writeAndFlush(caviarMessage);
     }
 
     /**

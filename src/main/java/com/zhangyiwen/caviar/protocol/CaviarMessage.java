@@ -151,6 +151,21 @@ public class CaviarMessage {
         return caviarMessage;
     }
 
+    /**
+     * CLIENT_MSG_SEND_ASYNC_REQ构造器
+     */
+    public static CaviarMessage CLIENT_MSG_SEND_ASYNC_REQ(byte[] msgBody){
+        CaviarMessage caviarMessage = new CaviarMessage();
+        caviarMessage.setRequestId(RequestIdGenerator.getRequestIdGenerator().nextGeneralizedId());
+        caviarMessage.setAddress(DEFAULT_INVALID_ADDRESS);
+        caviarMessage.setCrcCode(DEFAULT_CRC_CODE);
+        caviarMessage.setMsgType(MsgTypeEnum.CLIENT_MSG_SEND_ASYNC_REQ);
+        caviarMessage.setCodecType(CodecTypeEnum.JSON);
+        caviarMessage.setMsgBodyLength(msgBody.length);
+        caviarMessage.setMsgBody(msgBody);
+        return caviarMessage;
+    }
+
 //    public static byte[] encode(CaviarMessage caviarMessage){
 //        int msgBodyLength = caviarMessage.getMsgBody().length;
 //        int msgFullLength = MSG_HEAD_BYTE_SIZE + msgBodyLength;
