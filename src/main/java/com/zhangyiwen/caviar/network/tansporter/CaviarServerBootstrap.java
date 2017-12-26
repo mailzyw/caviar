@@ -21,5 +21,9 @@ public class CaviarServerBootstrap {
         int port = 7005;
         Server server = new CaviarServer(caviarBizListener);
         server.bind(port);
+
+        Thread.sleep(30*1000L);
+
+        server.close();
     }
 }

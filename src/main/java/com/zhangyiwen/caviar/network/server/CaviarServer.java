@@ -2,6 +2,7 @@ package com.zhangyiwen.caviar.network.server;
 
 import com.zhangyiwen.caviar.network.dispatcher.EventDispatcher;
 import com.zhangyiwen.caviar.network.dispatcher.ServerEventDispatcher;
+import com.zhangyiwen.caviar.network.exception.CaviarNetworkException;
 import com.zhangyiwen.caviar.network.handler.NetworkEventHandler;
 import com.zhangyiwen.caviar.protocol.CaviarDecoder;
 import com.zhangyiwen.caviar.protocol.CaviarEncoder;
@@ -56,7 +57,7 @@ public class CaviarServer implements Server {
     }
 
     @Override
-    public void bind(int port) {
+    public void bind(int port) throws CaviarNetworkException {
         if (port < 5000 || eventHandler == null) {
             throw new RuntimeException("unexpected input argument error port :" + port + " biz is null:" + (null == eventHandler));
         }
@@ -77,16 +78,11 @@ public class CaviarServer implements Server {
             }).option(ChannelOption.SO_BACKLOG, 4096).childOption(ChannelOption.SO_KEEPALIVE, false);
             LOGGER.info("[CaviarServer] bind start...");
             this.channel = bootstrap.bind(this.port).syncUninterruptibly().channel();
-            this.channel.closeFuture().syncUninterruptibly();
-            LOGGER.info("[CaviarServer] bind end.");
+//            this.channel.closeFuture().syncUninterruptibly();
+            LOGGER.info("[CaviarServer] bind succeed.");
         } catch (Exception e) {
             LOGGER.error("[CaviarServer] bind exception.", e);
-        } finally {
-            try {
-                close();
-            } catch (IOException e) {
-                LOGGER.error("[CaviarServer] close exception.", e);
-            }
+            throw CaviarNetworkException.SERVER_START_FAIL;
         }
     }
 
@@ -96,8 +92,8 @@ public class CaviarServer implements Server {
         if (channel != null) {
             channel.close().awaitUninterruptibly();
         }
-        boss.shutdownGracefully();
-        worker.shutdownGracefully();
+        boss.shutdownGracefully().syncUninterruptibly();
+        worker.shutdownGracefully().syncUninterruptibly();
         this.eventDispatcher.close();
         LOGGER.info("[CaviarServer] close end.");
     }

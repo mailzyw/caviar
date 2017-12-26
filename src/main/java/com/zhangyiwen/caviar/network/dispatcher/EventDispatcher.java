@@ -11,7 +11,7 @@ import java.io.IOException;
  */
 public interface EventDispatcher {
 
-    public void dispatch(NetworkEvent networkEvent, ChannelHandlerContext ctx, Object msg);
+    void dispatch(NetworkEvent networkEvent, ChannelHandlerContext ctx, Object msg);
 
-    public void close() throws IOException;
+    void close() throws IOException;
 }

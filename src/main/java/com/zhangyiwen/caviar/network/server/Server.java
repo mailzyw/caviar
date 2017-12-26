@@ -1,5 +1,7 @@
 package com.zhangyiwen.caviar.network.server;
 
+import com.zhangyiwen.caviar.network.exception.CaviarNetworkException;
+
 import java.io.IOException;
 
 /**
@@ -12,7 +14,7 @@ public interface Server {
      * 启动操作
      * @param port 监听端口
      */
-    void bind(int port);
+    void bind(int port) throws CaviarNetworkException;
 
     /**
      * 关闭操作

@@ -77,6 +77,7 @@ public class ServerEventDispatcher implements EventDispatcher{
     public void close() throws IOException {
         try {
             executor.awaitTermination(10, TimeUnit.SECONDS);
+            executor.shutdown();
             LOGGER.info("server dispatch close. succeed.");
         } catch (InterruptedException e) {
             LOGGER.error("server dispatch close. error.", e);

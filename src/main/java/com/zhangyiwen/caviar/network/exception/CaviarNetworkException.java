@@ -6,6 +6,7 @@ package com.zhangyiwen.caviar.network.exception;
  */
 public class CaviarNetworkException extends RuntimeException{
 
+    public static CaviarNetworkException SERVER_START_FAIL = new CaviarNetworkException("caviar server strat failed");
     public static CaviarNetworkException CLIENT_NOT_RUNNING = new CaviarNetworkException("caviar client is not running");
     public static CaviarNetworkException CLIENT_EXEC_TIMEOUT = new CaviarNetworkException("caviar client exec timeoout");
     public static CaviarNetworkException CLIENT_CONNECT_FAIL = new CaviarNetworkException("caviar client connect failed");
