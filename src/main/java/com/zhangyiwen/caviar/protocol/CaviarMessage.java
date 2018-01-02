@@ -137,6 +137,21 @@ public class CaviarMessage {
     }
 
     /**
+     * CLIENT_MSG_SEND_ASYNC_REQ构造器
+     */
+    public static CaviarMessage CLIENT_MSG_SEND_ASYNC_REQ(byte[] msgBody){
+        CaviarMessage caviarMessage = new CaviarMessage();
+        caviarMessage.setRequestId(RequestIdGenerator.getRequestIdGenerator().nextGeneralizedId());
+        caviarMessage.setAddress(DEFAULT_INVALID_ADDRESS);
+        caviarMessage.setCrcCode(DEFAULT_CRC_CODE);
+        caviarMessage.setMsgType(MsgTypeEnum.CLIENT_MSG_SEND_ASYNC_REQ);
+        caviarMessage.setCodecType(CodecTypeEnum.JSON);
+        caviarMessage.setMsgBodyLength(msgBody.length);
+        caviarMessage.setMsgBody(msgBody);
+        return caviarMessage;
+    }
+
+    /**
      * CLIENT_MSG_SEND_RESP构造器
      */
     public static CaviarMessage CLIENT_MSG_SEND_RESP(byte[] msgBody){
@@ -152,14 +167,44 @@ public class CaviarMessage {
     }
 
     /**
-     * CLIENT_MSG_SEND_ASYNC_REQ构造器
+     * SERVER_MSG_SEND_REQ构造器
      */
-    public static CaviarMessage CLIENT_MSG_SEND_ASYNC_REQ(byte[] msgBody){
+    public static CaviarMessage SERVER_MSG_SEND_REQ(byte[] msgBody){
         CaviarMessage caviarMessage = new CaviarMessage();
         caviarMessage.setRequestId(RequestIdGenerator.getRequestIdGenerator().nextGeneralizedId());
         caviarMessage.setAddress(DEFAULT_INVALID_ADDRESS);
         caviarMessage.setCrcCode(DEFAULT_CRC_CODE);
-        caviarMessage.setMsgType(MsgTypeEnum.CLIENT_MSG_SEND_ASYNC_REQ);
+        caviarMessage.setMsgType(MsgTypeEnum.SERVER_MSG_SEND_REQ);
+        caviarMessage.setCodecType(CodecTypeEnum.JSON);
+        caviarMessage.setMsgBodyLength(msgBody.length);
+        caviarMessage.setMsgBody(msgBody);
+        return caviarMessage;
+    }
+
+    /**
+     * SERVER_MSG_SEND_ASYNC_REQ构造器
+     */
+    public static CaviarMessage SERVER_MSG_SEND_ASYNC_REQ(byte[] msgBody){
+        CaviarMessage caviarMessage = new CaviarMessage();
+        caviarMessage.setRequestId(RequestIdGenerator.getRequestIdGenerator().nextGeneralizedId());
+        caviarMessage.setAddress(DEFAULT_INVALID_ADDRESS);
+        caviarMessage.setCrcCode(DEFAULT_CRC_CODE);
+        caviarMessage.setMsgType(MsgTypeEnum.SERVER_MSG_SEND_ASYNC_REQ);
+        caviarMessage.setCodecType(CodecTypeEnum.JSON);
+        caviarMessage.setMsgBodyLength(msgBody.length);
+        caviarMessage.setMsgBody(msgBody);
+        return caviarMessage;
+    }
+
+    /**
+     * SERVER_MSG_SEND_RESP构造器
+     */
+    public static CaviarMessage SERVER_MSG_SEND_RESP(byte[] msgBody){
+        CaviarMessage caviarMessage = new CaviarMessage();
+        caviarMessage.setRequestId(RequestIdGenerator.getRequestIdGenerator().nextGeneralizedId());
+        caviarMessage.setAddress(DEFAULT_INVALID_ADDRESS);
+        caviarMessage.setCrcCode(DEFAULT_CRC_CODE);
+        caviarMessage.setMsgType(MsgTypeEnum.SERVER_MSG_SEND_RESP);
         caviarMessage.setCodecType(CodecTypeEnum.JSON);
         caviarMessage.setMsgBodyLength(msgBody.length);
         caviarMessage.setMsgBody(msgBody);

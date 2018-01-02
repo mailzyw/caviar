@@ -1,4 +1,4 @@
-package com.zhangyiwen.caviar.network.client;
+package com.zhangyiwen.caviar.network.request;
 
 
 /**

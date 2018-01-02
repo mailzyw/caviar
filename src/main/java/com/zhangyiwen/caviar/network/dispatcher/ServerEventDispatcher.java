@@ -1,7 +1,9 @@
 package com.zhangyiwen.caviar.network.dispatcher;
 
 import com.zhangyiwen.caviar.network.enu.NetworkEvent;
+import com.zhangyiwen.caviar.network.request.CaviarMsgCallback;
 import com.zhangyiwen.caviar.network.request.RequestContext;
+import com.zhangyiwen.caviar.network.request.RequestContextManager;
 import com.zhangyiwen.caviar.network.server.CaviarServerBizListener;
 import com.zhangyiwen.caviar.network.session.NettySessionContext;
 import com.zhangyiwen.caviar.network.session.SessionContext;
@@ -34,8 +36,11 @@ public class ServerEventDispatcher implements EventDispatcher{
 
     private CaviarServerBizListener caviarBizListener;
 
-    public ServerEventDispatcher(CaviarServerBizListener caviarBizListener) {
+    private long requestTimeout; //请求超时时间
+
+    public ServerEventDispatcher(CaviarServerBizListener caviarBizListener, long requestTimeout) {
         this.caviarBizListener = caviarBizListener;
+        this.requestTimeout = requestTimeout;
     }
 
     /**
@@ -65,7 +70,7 @@ public class ServerEventDispatcher implements EventDispatcher{
                     });
             }
         } catch (Exception e) {
-            LOGGER.error("server dispatch network event error.",e);
+            LOGGER.error("[EventDispatcher] network event error.",e);
             this.dealWithError(NetworkEvent.onError, ctx, e);
         }
     }
@@ -78,9 +83,9 @@ public class ServerEventDispatcher implements EventDispatcher{
         try {
             executor.awaitTermination(10, TimeUnit.SECONDS);
             executor.shutdown();
-            LOGGER.info("server dispatch close. succeed.");
+            LOGGER.info("[EventDispatcher] close. succeed.");
         } catch (InterruptedException e) {
-            LOGGER.error("server dispatch close. error.", e);
+            LOGGER.error("[EventDispatcher] close. error.", e);
         }
     }
 
@@ -97,9 +102,9 @@ public class ServerEventDispatcher implements EventDispatcher{
      * 3 调用SessionManager绑定连接与客户端映射关系
      */
     private void dealWithConnected(NetworkEvent networkEvent, ChannelHandlerContext ctx){
-        LOGGER.info("[EventDispatcher] dealWithConnected");
+        LOGGER.info("[EventDispatcher] dealWithConnected...");
         Channel channel = ctx.channel();
-        SessionContext session = new NettySessionContext(channel, (InetSocketAddress)ctx.channel().remoteAddress(), (InetSocketAddress)ctx.channel().localAddress());
+        SessionContext session = new NettySessionContext(channel, (InetSocketAddress)ctx.channel().remoteAddress(), (InetSocketAddress)ctx.channel().localAddress(),requestTimeout);
         Long index = getSessionIndex(ctx.channel());
         SessionManagerFactory.getServerSessionMananger().bindSessionContext(index, session);
     }
@@ -108,7 +113,7 @@ public class ServerEventDispatcher implements EventDispatcher{
      * 网络断连事件处理
      */
     private void dealWithDisconnected(NetworkEvent networkEvent, ChannelHandlerContext ctx){
-        LOGGER.info("[EventDispatcher] dealWithDisconnected");
+        LOGGER.info("[EventDispatcher] dealWithDisconnected...");
         destroySession(ctx);
     }
 
@@ -135,30 +140,66 @@ public class ServerEventDispatcher implements EventDispatcher{
         long index = getSessionIndex(ctx.channel());
         SessionContext sessionContext = SessionManagerFactory.getServerSessionMananger().getSessionContext(index);
 
+        //=====process request=====
         if(msg.getMsgType().equals(MsgTypeEnum.CLIENT_LOGIN_REQ)){
+            LOGGER.info("[receive msg] CLIENT_LOGIN_REQ---> msg:{}", msg);
             RequestContext requestContext = new RequestContext(index,msg.getRequestId(),msg);
-            LOGGER.info("[CLIENT_LOGIN_REQ] requestContext:{}, session:{}", requestContext, sessionContext);
             caviarBizListener.processClientLogin(requestContext, sessionContext, msg.getMsgBody());
         }
         if(msg.getMsgType().equals(MsgTypeEnum.CLIENT_MSG_SEND_REQ)){
+            LOGGER.info("[receive msg] CLIENT_MSG_SEND_REQ---> msg:{}", msg);
             RequestContext requestContext = new RequestContext(index,msg.getRequestId(),msg);
-            LOGGER.info("[CLIENT_MSG_SEND_REQ] requestContext:{}, session:{}",requestContext, sessionContext);
             caviarBizListener.processClientMsg(requestContext, sessionContext, msg.getMsgBody());
         }
         if(msg.getMsgType().equals(MsgTypeEnum.CLIENT_MSG_SEND_ASYNC_REQ)){
+            LOGGER.info("[receive msg] CLIENT_MSG_SEND_ASYNC_REQ---> msg:{}", msg);
             RequestContext requestContext = new RequestContext(index,msg.getRequestId(),msg);
-            LOGGER.info("[CLIENT_MSG_SEND_ASYNC_REQ] requestContext:{}, session:{}", requestContext, sessionContext);
             caviarBizListener.processClientMsg(requestContext, sessionContext, msg.getMsgBody());
         }
         if(msg.getMsgType().equals(MsgTypeEnum.CLIENT_LOGOUT_REQ)){
+            LOGGER.info("[receive msg] CLIENT_LOGOUT_REQ---> msg:{}", msg);
             RequestContext requestContext = new RequestContext(index,msg.getRequestId(),msg);
-            LOGGER.info("[CLIENT_LOGOUT_REQ] requestContext:{}, session:{}", requestContext, sessionContext);
             caviarBizListener.processClientLogout(requestContext, sessionContext, msg.getMsgBody());
         }
+        //=====process heartbeat=====
         if(msg.getMsgType().equals(MsgTypeEnum.PING)){
-            LOGGER.info("[PING] received ping msg:{}", String.valueOf(msg));
+            LOGGER.info("[receive msg] PING---> msg:{}", msg);
             sendPong(sessionContext);
         }
+        //=====process response=====
+        if(msg.getMsgType().equals(MsgTypeEnum.SERVER_MSG_SEND_RESP)){
+            LOGGER.info("[receive msg] SERVER_MSG_SEND_RESP---> msg:{}", msg);
+            long requestId = msg.getRequestId();
+            RequestContext requestContext = RequestContextManager.getServerRequestContextManager().getRequestContext(requestId);
+            if(requestContext == null || (!requestContext.markRespHandled())){
+                LOGGER.warn("[receive msg] SERVER_MSG_SEND_RESP---> requestContext has bean handled. requestId:{}, requestContext:{}",requestId, requestContext);
+                return;
+            }
+            if(requestContext.isSync()){
+                setRequestContextAndNotify(msg);
+            }
+            else {
+                dealCallbackMsg(msg);
+            }
+        }
+    }
+
+    private void setRequestContextAndNotify(CaviarMessage msg){
+        long requestId = msg.getRequestId();
+        RequestContext requestContext = RequestContextManager.getServerRequestContextManager().getRequestContext(requestId);
+        synchronized (requestContext){
+            requestContext.setResponseMessage(msg);
+            requestContext.notifyAll();
+        }
+    }
+
+    private void dealCallbackMsg(CaviarMessage msg){
+        long requestId = msg.getRequestId();
+        RequestContext requestContext = RequestContextManager.getServerRequestContextManager().getRequestContext(requestId);
+        requestContext.setResponseMessage(msg);
+        CaviarMsgCallback msgCallback = requestContext.getCaviarMsgCallback();
+        RequestContextManager.getServerRequestContextManager().cleanRequestContext(requestId);
+        msgCallback.dealRequestCallback(msg.getMsgBody());
     }
 
     /**
@@ -180,6 +221,5 @@ public class ServerEventDispatcher implements EventDispatcher{
      */
     private void sendPong(SessionContext sessionContext){
         sessionContext.writeAndFlush(CaviarMessage.PONG());
-        LOGGER.debug("[EventDispatcher] send Pong end.");
     }
 }

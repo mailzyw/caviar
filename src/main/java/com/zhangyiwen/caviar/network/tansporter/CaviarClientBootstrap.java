@@ -1,10 +1,10 @@
 package com.zhangyiwen.caviar.network.tansporter;
 
+import com.zhangyiwen.caviar.biz.CaviarClientBizListenerDefaultImp;
 import com.zhangyiwen.caviar.network.client.CaviarClient;
-import com.zhangyiwen.caviar.network.client.CaviarMsgCallback;
+import com.zhangyiwen.caviar.network.request.CaviarMsgCallback;
 import com.zhangyiwen.caviar.network.client.Client;
 import com.zhangyiwen.caviar.network.exception.CaviarNetworkException;
-import com.zhangyiwen.caviar.protocol.CaviarMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,7 +28,7 @@ public class CaviarClientBootstrap {
         long timeout = 5000L;
 
         //connect
-        Client client = new CaviarClient(timeout,timeout);
+        Client client = new CaviarClient(timeout,timeout,new CaviarClientBizListenerDefaultImp());
         try {
             client.connect(host, port);
         } catch (CaviarNetworkException e) {
@@ -36,20 +36,20 @@ public class CaviarClientBootstrap {
             client.close();
         }
 
-        //login
-        byte[] loginResp = client.login("login test".getBytes());
-        LOGGER.info("==========client login end.=========  loginResp:{}",String.valueOf(loginResp));
+//        //login
+//        byte[] loginResp = client.login("login test".getBytes());
+//        LOGGER.info("==========client login end.=========  loginResp:{}",String.valueOf(loginResp));
 
-        //sendMsgSync
-        try {
-            byte[] sendSyncResp = client.sendMsgSync("send msg sync test".getBytes());
-            LOGGER.info("==========client send sync end.==========  sendSyncResp:{}",String.valueOf(sendSyncResp));
-        } catch (CaviarNetworkException e) {
-            e.printStackTrace();
-        }
+//        //sendMsgSync
+//        try {
+//            byte[] sendSyncResp = client.sendMsgSync("send msg sync test".getBytes());
+//            LOGGER.info("==========client send sync end.==========  sendSyncResp:{}",String.valueOf(sendSyncResp));
+//        } catch (CaviarNetworkException e) {
+//            e.printStackTrace();
+//        }
 
         //sendMsgAsync
-        for(int i=0;i<3;i++){
+        for(int i=0;i<1;i++){
             try {
                 client.sendMsgAsync(("send msg async test" + i).getBytes(), new CaviarMsgCallback() {
                     @Override
@@ -68,8 +68,11 @@ public class CaviarClientBootstrap {
         }
         LOGGER.info("==========client send async end.==========");
 
-        //logout
-        byte[] logoutResp = client.logout("logout test".getBytes());
-        LOGGER.info("==========client logout end.==========  logoutResp:{}",String.valueOf(logoutResp));
+//        //logout
+//        byte[] logoutResp = client.logout("logout test".getBytes());
+//        LOGGER.info("==========client logout end.==========  logoutResp:{}",String.valueOf(logoutResp));
+
+        Thread.sleep(30*1000L);
+        client.close();
     }
 }

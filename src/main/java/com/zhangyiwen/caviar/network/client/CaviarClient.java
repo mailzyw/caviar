@@ -4,6 +4,7 @@ import com.zhangyiwen.caviar.network.dispatcher.ClientEventDispatcher;
 import com.zhangyiwen.caviar.network.dispatcher.EventDispatcher;
 import com.zhangyiwen.caviar.network.exception.CaviarNetworkException;
 import com.zhangyiwen.caviar.network.handler.NetworkEventHandler;
+import com.zhangyiwen.caviar.network.request.CaviarMsgCallback;
 import com.zhangyiwen.caviar.network.request.RequestContext;
 import com.zhangyiwen.caviar.network.request.RequestContextManager;
 import com.zhangyiwen.caviar.network.session.NettySessionContext;
@@ -62,8 +63,8 @@ public class CaviarClient implements Client{
     private long connectTimeout;                        //连接超时时间
     private long requestTimeout;                        //请求超时时间
 
-    public CaviarClient(long connectTimeout,long requestTimeout) {
-        this.eventDispatcher = new ClientEventDispatcher(this);
+    public CaviarClient(long connectTimeout,long requestTimeout,CaviarClientBizListener clientBizListener) {
+        this.eventDispatcher = new ClientEventDispatcher(this,clientBizListener);
         this.eventHandler = new NetworkEventHandler(eventDispatcher);
         this.connectTimeout = connectTimeout;
         this.requestTimeout = requestTimeout;
@@ -170,25 +171,36 @@ public class CaviarClient implements Client{
         }
     }
 
-    @Override
-    public void disconnect() {
-        LOGGER.info("[CaviarClient] disconnect start.");
-        this.running = false;
-        if (channel != null && channel.isOpen()) {
-            channel.close().awaitUninterruptibly();
-        }
-        LOGGER.info("[CaviarClient] disconnect end.");
-    }
+//    @Override
+//    public void disconnect() {
+//        LOGGER.info("[CaviarClient] disconnect start.");
+//        this.running = false;
+//        if (channel != null && channel.isOpen()) {
+//            channel.close().awaitUninterruptibly();
+//        }
+//        LOGGER.info("[CaviarClient] disconnect end.");
+//    }
 
     @Override
     public void close() throws IOException {
         LOGGER.info("[CaviarClient] close start...");
+        //
         this.running = false;
         if (channel != null) {
             channel.close().awaitUninterruptibly();
         }
         worker.shutdownGracefully();
+        //
         this.eventDispatcher.close();
+        //
+        try {
+            callBackTimeoutExecutor.awaitTermination(10, TimeUnit.SECONDS);
+            callBackTimeoutExecutor.shutdown();
+            NettySessionContext.serverCallBackTimeoutExecutor.awaitTermination(10, TimeUnit.SECONDS);
+            NettySessionContext.serverCallBackTimeoutExecutor.shutdown();
+        } catch (InterruptedException e) {
+            LOGGER.error("[CaviarClient] close. error.", e);
+        }
         LOGGER.info("[CaviarClient] close end.");
     }
 
@@ -226,7 +238,7 @@ public class CaviarClient implements Client{
         RequestContextManager.getClientRequestContextManager().cleanRequestContext(requestId);
         LOGGER.info("[CaviarClient] login end. resp:{}",response);
         if(response == null){
-            throw CaviarNetworkException.CLIENT_EXEC_TIMEOUT;
+            throw CaviarNetworkException.CLIENT_REQ_TIMEOUT;
         }
         return response.getMsgBody();
     }
@@ -259,7 +271,7 @@ public class CaviarClient implements Client{
         RequestContextManager.getClientRequestContextManager().cleanRequestContext(requestId);
         LOGGER.info("[CaviarClient] logout end. resp:{}",response);
         if(response == null){
-            throw CaviarNetworkException.CLIENT_EXEC_TIMEOUT;
+            throw CaviarNetworkException.CLIENT_REQ_TIMEOUT;
         }
         return response.getMsgBody();
     }
@@ -292,7 +304,7 @@ public class CaviarClient implements Client{
         RequestContextManager.getClientRequestContextManager().cleanRequestContext(requestId);
         LOGGER.info("[CaviarClient] sendMsgSync end. resp:{}",response);
         if(response == null){
-            throw CaviarNetworkException.CLIENT_EXEC_TIMEOUT;
+            throw CaviarNetworkException.CLIENT_REQ_TIMEOUT;
         }
         return response.getMsgBody();
     }
@@ -302,7 +314,6 @@ public class CaviarClient implements Client{
         if(!running){
             throw CaviarNetworkException.CLIENT_NOT_RUNNING;
         }
-        LOGGER.info("[CaviarClient] sendMsgAsync start.");
         CaviarMessage caviarMessage = CaviarMessage.CLIENT_MSG_SEND_ASYNC_REQ(msg);
         SessionContext sessionContext = getSessionContext();
 
@@ -311,19 +322,20 @@ public class CaviarClient implements Client{
         RequestContextManager.getClientRequestContextManager().bindRequestContext(requestId, requestContext);
 
         sessionContext.writeAndFlush(caviarMessage);
+        LOGGER.info("[CaviarClient] sendMsgAsync. requestId:{}, msg:{}",requestId,msg);
 
         callBackTimeoutExecutor.schedule(new Runnable() {
             @Override
             public void run() {
-                LOGGER.info("[CaviarClient] sendMsgAsync timeout. requestId:{},msg:{}", requestId, msg);
                 RequestContext timeoutRequestContext = RequestContextManager.getClientRequestContextManager().getRequestContext(requestId);
                 if (timeoutRequestContext != null && timeoutRequestContext.markRespHandled()) {
+                    LOGGER.info("[CaviarClient] sendMsgAsync timeout. requestTimeout:{}, requestId:{},msg:{}", requestTimeout, requestId, msg);
                     timeoutRequestContext.setRespHandled(true);
                     RequestContextManager.getClientRequestContextManager().cleanRequestContext(requestId);
                     caviarMsgCallback.dealRequestTimeout(msg);
                 }
             }
-        }, requestTimeout, TimeUnit.MICROSECONDS);
+        }, 5000, TimeUnit.MILLISECONDS);
     }
 
     /**

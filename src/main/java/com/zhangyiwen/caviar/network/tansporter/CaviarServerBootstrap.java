@@ -19,10 +19,10 @@ public class CaviarServerBootstrap {
     public static void main(String[] args) throws Exception {
         CaviarServerBizListener caviarBizListener = new CaviarServerBizListenerDefaultImp();
         int port = 7005;
-        Server server = new CaviarServer(caviarBizListener);
+        Server server = new CaviarServer(5000L,caviarBizListener);
         server.bind(port);
 
-        Thread.sleep(30*1000L);
+        Thread.sleep(50*1000L);
 
         server.close();
     }

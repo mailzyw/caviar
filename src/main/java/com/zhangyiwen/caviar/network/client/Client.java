@@ -1,7 +1,7 @@
 package com.zhangyiwen.caviar.network.client;
 
 import com.zhangyiwen.caviar.network.exception.CaviarNetworkException;
-import com.zhangyiwen.caviar.protocol.CaviarMessage;
+import com.zhangyiwen.caviar.network.request.CaviarMsgCallback;
 
 import java.io.IOException;
 
@@ -29,10 +29,10 @@ public interface Client {
      */
     void reconnect();
 
-    /**
-     * 断连服务端
-     */
-    void disconnect();
+//    /**
+//     * 断连服务端
+//     */
+//    void disconnect();
 
     /**
      * 设置客户端运行状态

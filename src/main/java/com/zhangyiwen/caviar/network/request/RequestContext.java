@@ -1,6 +1,5 @@
 package com.zhangyiwen.caviar.network.request;
 
-import com.zhangyiwen.caviar.network.client.CaviarMsgCallback;
 import com.zhangyiwen.caviar.protocol.CaviarMessage;
 import lombok.Data;
 

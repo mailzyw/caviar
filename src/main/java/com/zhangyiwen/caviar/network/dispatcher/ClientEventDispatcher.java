@@ -1,10 +1,12 @@
 package com.zhangyiwen.caviar.network.dispatcher;
 
-import com.zhangyiwen.caviar.network.client.CaviarMsgCallback;
+import com.zhangyiwen.caviar.network.client.CaviarClientBizListener;
+import com.zhangyiwen.caviar.network.request.CaviarMsgCallback;
 import com.zhangyiwen.caviar.network.client.Client;
 import com.zhangyiwen.caviar.network.enu.NetworkEvent;
 import com.zhangyiwen.caviar.network.request.RequestContext;
 import com.zhangyiwen.caviar.network.request.RequestContextManager;
+import com.zhangyiwen.caviar.network.server.CaviarServerBizListener;
 import com.zhangyiwen.caviar.network.session.NettySessionContext;
 import com.zhangyiwen.caviar.network.session.SessionContext;
 import com.zhangyiwen.caviar.network.session.SessionManagerFactory;
@@ -30,15 +32,15 @@ public class ClientEventDispatcher implements EventDispatcher{
     private static final Logger LOGGER = LoggerFactory.getLogger(ClientEventDispatcher.class);
 
     private static final ExecutorService executor =
-            Executors.newFixedThreadPool(64, new BasicThreadFactory.Builder().namingPattern("server-event-dispatcher-%d").build());     //消息处理线程池
-
-    private static final ExecutorService callBackExecutor =
-            Executors.newFixedThreadPool(32, new BasicThreadFactory.Builder().namingPattern("server-event-dispatcher-%d").build());
+            Executors.newFixedThreadPool(64, new BasicThreadFactory.Builder().namingPattern("client-event-dispatcher-%d").build());     //消息处理线程池
 
     private Client client;                                  //网络客户端
 
-    public ClientEventDispatcher(Client client) {
+    private CaviarClientBizListener caviarBizListener;      //业务消息监听器
+
+    public ClientEventDispatcher(Client client, CaviarClientBizListener caviarBizListener) {
         this.client = client;
+        this.caviarBizListener = caviarBizListener;
     }
 
     /**
@@ -69,7 +71,7 @@ public class ClientEventDispatcher implements EventDispatcher{
                     });
             }
         } catch (Exception e) {
-            LOGGER.error("server dispatch network event error.",e);
+            LOGGER.error("[EventDispatcher] network event error.",e);
             this.dealWithError(NetworkEvent.onError, ctx, e);
         }
     }
@@ -81,9 +83,10 @@ public class ClientEventDispatcher implements EventDispatcher{
     public void close() throws IOException {
         try {
             executor.awaitTermination(10, TimeUnit.SECONDS);
-            LOGGER.info("server dispatch close. succeed.");
+            executor.shutdown();
+            LOGGER.info("[EventDispatcher] close. succeed.");
         } catch (InterruptedException e) {
-            LOGGER.error("server dispatch close. error.", e);
+            LOGGER.error("[EventDispatcher] close. error.", e);
         }
     }
 
@@ -100,7 +103,7 @@ public class ClientEventDispatcher implements EventDispatcher{
      * 3 调用SessionManager绑定连接与服务端映射关系
      */
     private void dealWithConnected(NetworkEvent networkEvent, ChannelHandlerContext ctx){
-        LOGGER.info("[EventDispatcher] dealWithConnected");
+        LOGGER.info("[EventDispatcher] dealWithConnected...");
         Channel channel = ctx.channel();
         SessionContext session = new NettySessionContext(channel, (InetSocketAddress)ctx.channel().remoteAddress(), (InetSocketAddress)ctx.channel().localAddress());
         Long index = getSessionIndex(ctx.channel());
@@ -117,7 +120,7 @@ public class ClientEventDispatcher implements EventDispatcher{
      * 2 客户端断连重连
      */
     private void dealWithDisconnected(NetworkEvent networkEvent, ChannelHandlerContext ctx) {
-        LOGGER.info("[EventDispatcher] dealWithDisconnected");
+        LOGGER.info("[EventDispatcher] dealWithDisconnected...");
         destroySession(ctx);
         reconnect(ctx);
     }
@@ -147,14 +150,18 @@ public class ClientEventDispatcher implements EventDispatcher{
      * 消息事件处理
      */
     private void dealWithMessage(NetworkEvent networkEvent, ChannelHandlerContext ctx, CaviarMessage msg) {
+
+        //=====process response=====
         if(msg.getMsgType().equals(MsgTypeEnum.CLIENT_LOGIN_RESP)){
+            LOGGER.info("[receive msg] CLIENT_LOGIN_RESP---> msg:{}", msg);
             setRequestContextAndNotify(msg);
         }
         if(msg.getMsgType().equals(MsgTypeEnum.CLIENT_MSG_SEND_RESP)){
+            LOGGER.info("[receive msg] CLIENT_MSG_SEND_RESP---> msg:{}", msg);
             long requestId = msg.getRequestId();
             RequestContext requestContext = RequestContextManager.getClientRequestContextManager().getRequestContext(requestId);
             if(requestContext == null || (!requestContext.markRespHandled())){
-                LOGGER.warn("[EventDispatcher] requestContext has bean handled. requestId:{}, requestContext:{}",requestId, requestContext);
+                LOGGER.warn("[receive msg] CLIENT_MSG_SEND_RESP---> requestContext has bean handled. requestId:{}, requestContext:{}",requestId, requestContext);
                 return;
             }
             if(requestContext.isSync()){
@@ -166,12 +173,28 @@ public class ClientEventDispatcher implements EventDispatcher{
 
         }
         if(msg.getMsgType().equals(MsgTypeEnum.CLIENT_LOGOUT_RESP)){
+            LOGGER.info("[receive msg] CLIENT_LOGOUT_RESP---> msg:{}", msg);
             setRequestContextAndNotify(msg);
         }
+        //=====process heartbeat=====
         if(msg.getMsgType().equals(MsgTypeEnum.PONG)){
-            LOGGER.info("[PONG] received pong msg:{}", String.valueOf(msg));
+            LOGGER.info("[receive msg] PONG---> msg:{}", msg);
         }
-
+        //=====process request=====
+        if(msg.getMsgType().equals(MsgTypeEnum.SERVER_MSG_SEND_REQ)){
+            long index = getSessionIndex(ctx.channel());
+            SessionContext sessionContext = SessionManagerFactory.getClientSessionMananger().getSessionContext(index);
+            RequestContext requestContext = new RequestContext(index,msg.getRequestId(),msg);
+            LOGGER.info("[receive msg] SERVER_MSG_SEND_REQ---> msg:{}", msg);
+            caviarBizListener.processServerMsg(requestContext, sessionContext, msg.getMsgBody());
+        }
+        if(msg.getMsgType().equals(MsgTypeEnum.SERVER_MSG_SEND_ASYNC_REQ)){
+            long index = getSessionIndex(ctx.channel());
+            SessionContext sessionContext = SessionManagerFactory.getClientSessionMananger().getSessionContext(index);
+            RequestContext requestContext = new RequestContext(index,msg.getRequestId(),msg);
+            LOGGER.info("[receive msg] SERVER_MSG_SEND_ASYNC_REQ---> msg:{}", msg);
+            caviarBizListener.processServerMsg(requestContext, sessionContext, msg.getMsgBody());
+        }
     }
 
     /**
@@ -186,7 +209,7 @@ public class ClientEventDispatcher implements EventDispatcher{
         long sessionIndex = session.getIndex();
         SessionManagerFactory.getClientSessionMananger().cleanSessionContext(sessionIndex);
         RequestContextManager.getClientRequestContextManager().cleanRequestContextAll();
-        this.client.disconnect();
+//        this.client.disconnect();
     }
 
     /**
@@ -207,7 +230,6 @@ public class ClientEventDispatcher implements EventDispatcher{
      */
     private void sendPing(SessionContext sessionContext){
         sessionContext.writeAndFlush(CaviarMessage.PING());
-        LOGGER.debug("[EventDispatcher] send Ping end.");
     }
 
     private void setRequestContextAndNotify(CaviarMessage msg){
@@ -224,7 +246,6 @@ public class ClientEventDispatcher implements EventDispatcher{
         RequestContext requestContext = RequestContextManager.getClientRequestContextManager().getRequestContext(requestId);
         requestContext.setResponseMessage(msg);
         CaviarMsgCallback msgCallback = requestContext.getCaviarMsgCallback();
-        LOGGER.info("[MsgCallback] msg callback deal start. requestId:{}, resp:{}", requestId, msg);
         RequestContextManager.getClientRequestContextManager().cleanRequestContext(requestId);
         msgCallback.dealRequestCallback(msg.getMsgBody());
     }

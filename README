@@ -4,8 +4,9 @@
 提供上层API,屏蔽底层NIO框架,屏蔽底层通信细
 
 *CaviarClient(caviar框架客户端)
-    |-实例化    --> CaviarClient(long timeout)
+    |-实例化    --> CaviarClient(long timeout, CaviarClientBizListener caviarBizListener)
         |-timeout为客户端连接/同步请求的超时时间
+        |-CaviarClientBizListener供使用者扩展实现,用于处理服务端请求消息
     |-连接服务端  --> connect(String host, int port)
         |-超时抛出CaviarNetworkException
         |-成功后可以进行后续网络请求收发操作
@@ -13,28 +14,38 @@
         |-断连服务端
         |-释放Client资源
     |-登录/登出 -->login(byte[] loginMsg)/logout(byte[] logoutMsg)
-        |-单独抽出的请求响应消息类型,供使用者选择使用
+        |-单独抽出的请求响应消息类型,供使用者选择
         |-超时抛出CaviarNetworkException
         |-成功返回服务端响应
+    |-请求处理   --> CaviarClientBizListener为使用者扩展
+        |-处理服务端请求消息:processServerMsg
     |-发送请求(同步)  --> sendMsgSync(byte[] msg)
         |-服务端响应超时抛出CaviarNetworkException
         |-成功返回服务端响应
     |-发送请求(异步)  --> sendMsgAsync(byte[] msg, CaviarMsgCallback caviarMsgCallback)
-        |-提供回调扩展供使用者实现CaviarMsgCallback
+        |-CaviarMsgCallback提供回调扩展供使用者实现
         |-成功执行回调成功逻辑
         |-超时执行回调超时逻辑    //TODO 目前使用ScheduledExecutorService实现,不知是否标准
 
 *CaviarServer(caviar框架服务端)
-    |-实例化   --> CaviarServer(CaviarServerBizListener caviarBizListener)
-        |-CaviarServerBizListener为使用者扩展,用于实现网络消息业务处理
+    |-实例化   --> CaviarServer(long timeout, CaviarServerBizListener caviarBizListener)
+        |-timeout为服务端请求的超时时间
+        |-CaviarServerBizListener供使用者扩展实现,用于处理客户端请求消息
     |-启动    --> bind(int port)
         |-启动成功后占用当前线程,直至关闭或产生异常
     |-关闭    --> close()
         |-关闭服务端,释放资源
-    |请求处理   --> CaviarServerBizListener为使用者扩展
+    |-请求处理   --> CaviarServerBizListener为使用者扩展
         |-处理登录请求:processClientLogin
         |-处理登出请求:processClientLogout
-        |-处理请求消息:processClientMsg
+        |-处理客户端请求消息:processClientMsg
+    |-发送请求(同步)  -->SessionContext.sendServerReq(byte[] reqMessage)
+        |-客户端响应超时抛出CaviarNetworkException
+        |-成功返回服务端响应
+    |-发送请求(异步)  -->SessionContext.sendServerReqAsync(byte[] reqMessage, CaviarMsgCallback callback)
+        |-CaviarMsgCallback提供回调扩展供使用者实现
+        |-成功执行回调成功逻辑
+        |-超时执行回调超时逻辑    //TODO 目前使用ScheduledExecutorService实现,不知是否标准
     |消息推送(TODO 主动向客户端推送消息,无需响应)
 
 *RequestContext(请求上下文)
@@ -55,6 +66,10 @@
         |-sendClientLoginResp(RequestContext requestContext,byte[] respMessage)
         |-sendClientLogoutResp(RequestContext requestContext,byte[] respMessage)
         |-sendClientRequestResp(RequestContext requestContext,byte[] respMessage)
+        |-sendServerRequestResp(RequestContext requestContext,byte[] respMessage)
+    |-发送请求消息:
+        |-byte[] sendServerReq(byte[] reqMessage)
+        |-sendServerReqAsync(byte[] reqMessage, CaviarMsgCallback callback)
 
 [二 通信协议]
 *消息协议
@@ -69,12 +84,14 @@
     |-请求消息
         |-CLIENT_LOGIN_REQ(1001),                 //客户端登录
         |-CLIENT_LOGOUT_REQ(1002),                //客户端登出
-        |-CLIENT_MSG_SEND_REQ(1003),              //客户端消息发送——同步
-        |-CLIENT_MSG_SEND_ASYNC_REQ(1004),        //客户端消息发送——异步回调
+        |-CLIENT_MSG_SEND_REQ(1003),              //客户端请求——同步
+        |-CLIENT_MSG_SEND_ASYNC_REQ(1004),        //客户端请求——异步回调
+        |-SERVER_MSG_SEND_REQ(1013),              //服务端请求——同步
+        |-SERVER_MSG_SEND_ASYNC_REQ(1014),        //服务端请求——异步回调
     |-响应消息
         |-CLIENT_LOGIN_RESP(2001),                //客户端登录
         |-CLIENT_LOGOUT_RESP(2002),               //客户端登出
-        |-CLIENT_MSG_SEND_RESP(2003),             //客户端消息发送
+        |-CLIENT_MSG_SEND_RESP(2003),             //客户端请求
     |-心跳消息
         |-PING(9001),                             //客户端Ping
         |-PONG(9002),                             //服务端Pong
@@ -101,6 +118,7 @@
     |-专门的NIO线程Acceptor负责监听服务端,接收客户端的TCP连接请求
     |-IO读写事件由NIO线程池负责
     |-无锁化串行设计,一个NIO线程同时处理多条链路,一个链路只由一个NIO线程处理
+    |-将IO事件解析为业务消息后,交由caviar框架业务线程池处理,不阻塞NIO线程
 *序列化框架
     |-Caviar消息协议直接基于byte数组进行序列化/反序列化,简单高效
     |-业务消息体直接定义为byte数组,将编解码操作开放给使用者自行实现

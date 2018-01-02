@@ -49,7 +49,7 @@ public class RequestContextManager {
     public void bindRequestContext(long requestId, RequestContext context){
         context.setRequestId(requestId);
         RequestContext result = this.index2Session.put(requestId,context);
-        LOGGER.info("[request manager] bind context succeed. mapSize:{}, requestId:{}, context:{}", index2Session.size(), requestId, context);
+        LOGGER.debug("[request manager] bind context succeed. mapSize:{}, requestId:{}, context:{}", index2Session.size(), requestId, context);
     }
 
     /**
@@ -69,7 +69,7 @@ public class RequestContextManager {
      */
     public void cleanRequestContext(long requestId){
         RequestContext context = this.index2Session.remove(requestId);
-        LOGGER.info("[request manager] clean context succeed. mapSize:{}, requestId:{}, context:{}", index2Session.size(), requestId, context);
+        LOGGER.debug("[request manager] clean context succeed. mapSize:{}, requestId:{}, context:{}", index2Session.size(), requestId, context);
     }
 
     /**
@@ -77,7 +77,7 @@ public class RequestContextManager {
      */
     public void cleanRequestContextAll(){
         index2Session = new ConcurrentSkipListMap<>();
-        LOGGER.info("[request manager] clean context all.");
+        LOGGER.debug("[request manager] clean context all.");
     }
 
 }

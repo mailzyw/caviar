@@ -1,11 +1,12 @@
 package com.zhangyiwen.caviar.network.session;
 
+import com.zhangyiwen.caviar.network.exception.CaviarNetworkException;
+import com.zhangyiwen.caviar.network.request.CaviarMsgCallback;
 import com.zhangyiwen.caviar.network.request.RequestContext;
 import com.zhangyiwen.caviar.protocol.CaviarMessage;
 import io.netty.channel.Channel;
 
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 
 /**
  * Created by zhangyiwen on 2017/12/15.
@@ -45,6 +46,26 @@ public interface SessionContext {
      * @param respMessage 响应消息
      */
     void sendClientRequestResp(RequestContext requestContext,byte[] respMessage);
+
+    /**
+     * 发送响应消息——服务端请求消息
+     * @param requestContext 请求上下文
+     * @param respMessage 响应消息
+     */
+    void sendServerRequestResp(RequestContext requestContext,byte[] respMessage);
+
+    /**
+     * 发送请求消息——服务端请求消息
+     * @param reqMessage 请求消息
+     */
+    byte[] sendServerReq(byte[] reqMessage) throws CaviarNetworkException;
+
+    /**
+     * 发送请求消息(异步)——服务端请求消息
+     * @param reqMessage 请求消息
+     * @param callback 回调器
+     */
+    void sendServerReqAsync(byte[] reqMessage, CaviarMsgCallback callback);
 
     /**
      * 获取连接的远程地址

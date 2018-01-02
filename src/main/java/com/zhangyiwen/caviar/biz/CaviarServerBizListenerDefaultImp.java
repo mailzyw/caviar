@@ -1,14 +1,20 @@
 package com.zhangyiwen.caviar.biz;
 
+import com.zhangyiwen.caviar.network.request.CaviarMsgCallback;
 import com.zhangyiwen.caviar.network.request.RequestContext;
 import com.zhangyiwen.caviar.network.server.CaviarServerBizListener;
 import com.zhangyiwen.caviar.network.session.SessionContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Created by zhangyiwen on 2017/12/26.
  * 网络事件业务处理器——实现示例
  */
 public class CaviarServerBizListenerDefaultImp implements CaviarServerBizListener{
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(CaviarServerBizListenerDefaultImp.class);
+
     @Override
     public void processClientLogin(RequestContext requestContext, SessionContext sessionContext, byte[] msg) {
         try {
@@ -31,11 +37,25 @@ public class CaviarServerBizListenerDefaultImp implements CaviarServerBizListene
 
     @Override
     public void processClientMsg(RequestContext requestContext, SessionContext sessionContext, byte[] msg) {
+        LOGGER.info("--->processClientMsg. requestId:{}, msg:{}", requestContext.getRequestId(), msg);
         try {
-            Thread.sleep(10*1000L);
+            Thread.sleep(2000L);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+        byte[] reqAsyncMsg = "server msg push async".getBytes();
+        sessionContext.sendServerReq("server msg push".getBytes());
+        sessionContext.sendServerReqAsync(reqAsyncMsg, new CaviarMsgCallback() {
+            @Override
+            public void dealRequestCallback(byte[] msg) {
+                LOGGER.info("[MsgCallback] get resp. msg:{}", msg);
+            }
+
+            @Override
+            public void dealRequestTimeout(byte[] msg) {
+                LOGGER.info("[MsgCallback] get resp timeout. request:{}", reqAsyncMsg);
+            }
+        });
         sessionContext.sendClientRequestResp(requestContext, msg);
     }
 }

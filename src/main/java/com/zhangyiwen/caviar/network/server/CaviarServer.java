@@ -4,6 +4,7 @@ import com.zhangyiwen.caviar.network.dispatcher.EventDispatcher;
 import com.zhangyiwen.caviar.network.dispatcher.ServerEventDispatcher;
 import com.zhangyiwen.caviar.network.exception.CaviarNetworkException;
 import com.zhangyiwen.caviar.network.handler.NetworkEventHandler;
+import com.zhangyiwen.caviar.network.session.NettySessionContext;
 import com.zhangyiwen.caviar.protocol.CaviarDecoder;
 import com.zhangyiwen.caviar.protocol.CaviarEncoder;
 import io.netty.bootstrap.ServerBootstrap;
@@ -51,8 +52,8 @@ public class CaviarServer implements Server {
 
     private int port;
 
-    public CaviarServer(CaviarServerBizListener caviarBizListener) {
-        this.eventDispatcher = new ServerEventDispatcher(caviarBizListener);
+    public CaviarServer(long timeout, CaviarServerBizListener caviarBizListener) {
+        this.eventDispatcher = new ServerEventDispatcher(caviarBizListener,timeout);
         this.eventHandler = new NetworkEventHandler(eventDispatcher);
     }
 
@@ -95,6 +96,13 @@ public class CaviarServer implements Server {
         boss.shutdownGracefully().syncUninterruptibly();
         worker.shutdownGracefully().syncUninterruptibly();
         this.eventDispatcher.close();
+        //
+        try {
+            NettySessionContext.serverCallBackTimeoutExecutor.awaitTermination(10, TimeUnit.SECONDS);
+            NettySessionContext.serverCallBackTimeoutExecutor.shutdown();
+        } catch (InterruptedException e) {
+            LOGGER.error("[CaviarClient] close. error.", e);
+        }
         LOGGER.info("[CaviarServer] close end.");
     }
 
