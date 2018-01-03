@@ -37,7 +37,7 @@ public class CaviarServerBizListenerDefaultImp implements CaviarServerBizListene
 
     @Override
     public void processClientMsg(RequestContext requestContext, SessionContext sessionContext, byte[] msg) {
-        LOGGER.info("--->processClientMsg. requestId:{}, msg:{}", requestContext.getRequestId(), msg);
+        LOGGER.info("--->processClientMsg. requestId:{}, msg:{}", requestContext.getRequestId(), new String(msg));
         try {
             Thread.sleep(2000L);
         } catch (InterruptedException e) {
@@ -48,12 +48,12 @@ public class CaviarServerBizListenerDefaultImp implements CaviarServerBizListene
         sessionContext.sendServerReqAsync(reqAsyncMsg, new CaviarMsgCallback() {
             @Override
             public void dealRequestCallback(byte[] msg) {
-                LOGGER.info("[MsgCallback] get resp. msg:{}", msg);
+                LOGGER.info("[MsgCallback] get resp. msg:{}", new String(msg));
             }
 
             @Override
             public void dealRequestTimeout(byte[] msg) {
-                LOGGER.info("[MsgCallback] get resp timeout. request:{}", reqAsyncMsg);
+                LOGGER.info("[MsgCallback] get resp timeout. request:{}", new String(reqAsyncMsg));
             }
         });
         sessionContext.sendClientRequestResp(requestContext, msg);

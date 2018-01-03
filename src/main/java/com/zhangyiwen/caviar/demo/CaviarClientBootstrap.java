@@ -53,12 +53,12 @@ public class CaviarClientBootstrap {
                 client.sendMsgAsync(("send msg async test" + i).getBytes(), new CaviarMsgCallback() {
                     @Override
                     public void dealRequestCallback(byte[] msg) {
-                        LOGGER.info("[MsgCallback] get resp. msg:{}", msg);
+                        LOGGER.info("[MsgCallback] get resp. msg:{}", new String(msg));
                     }
 
                     @Override
                     public void dealRequestTimeout(byte[] msg) {
-                        LOGGER.info("[MsgCallback] resp timeout. request:{}", msg);
+                        LOGGER.info("[MsgCallback] resp timeout. request:{}", new String(msg));
                     }
                 });
             } catch (CaviarNetworkException e) {

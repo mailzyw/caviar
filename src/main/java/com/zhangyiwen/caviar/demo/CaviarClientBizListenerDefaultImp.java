@@ -16,7 +16,7 @@ public class CaviarClientBizListenerDefaultImp implements CaviarClientBizListene
 
     @Override
     public void processServerMsg(RequestContext requestContext, SessionContext sessionContext, byte[] msg) {
-        LOGGER.info("--->processServerMsg. requestId:{}, msg:{}", requestContext.getRequestId(), msg);
+        LOGGER.info("--->processServerMsg. requestId:{}, msg:{}", requestContext.getRequestId(), new String(msg));
         sessionContext.sendServerRequestResp(requestContext, msg);
     }
 }

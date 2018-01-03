@@ -103,7 +103,7 @@ public class ClientEventDispatcher implements EventDispatcher{
      * 3 调用SessionManager绑定连接与服务端映射关系
      */
     private void dealWithConnected(NetworkEvent networkEvent, ChannelHandlerContext ctx){
-        LOGGER.info("[EventDispatcher] dealWithConnected...");
+        LOGGER.info("[EventDispatcher] dealWithConnected");
         Channel channel = ctx.channel();
         SessionContext session = new NettySessionContext(channel, (InetSocketAddress)ctx.channel().remoteAddress(), (InetSocketAddress)ctx.channel().localAddress());
         Long index = getSessionIndex(ctx.channel());
@@ -120,7 +120,7 @@ public class ClientEventDispatcher implements EventDispatcher{
      * 2 客户端断连重连
      */
     private void dealWithDisconnected(NetworkEvent networkEvent, ChannelHandlerContext ctx) {
-        LOGGER.info("[EventDispatcher] dealWithDisconnected...");
+        LOGGER.info("[EventDispatcher] dealWithDisconnected");
         destroySession(ctx);
         reconnect(ctx);
     }
