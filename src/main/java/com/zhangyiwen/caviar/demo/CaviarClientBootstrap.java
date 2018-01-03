@@ -1,6 +1,5 @@
-package com.zhangyiwen.caviar.network.tansporter;
+package com.zhangyiwen.caviar.demo;
 
-import com.zhangyiwen.caviar.biz.CaviarClientBizListenerDefaultImp;
 import com.zhangyiwen.caviar.network.client.CaviarClient;
 import com.zhangyiwen.caviar.network.request.CaviarMsgCallback;
 import com.zhangyiwen.caviar.network.client.Client;

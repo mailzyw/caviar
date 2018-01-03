@@ -71,6 +71,8 @@
         |-byte[] sendServerReq(byte[] reqMessage)
         |-sendServerReqAsync(byte[] reqMessage, CaviarMsgCallback callback)
 
+
+
 [二 通信协议]
 *消息协议
     Long        address         消息发送端IP转换为的Long
@@ -96,6 +98,8 @@
         |-PING(9001),                             //客户端Ping
         |-PONG(9002),                             //服务端Pong
 
+
+
 [三 可靠性设计]
 *客户端连接/请求超时
     |-CaviarClient支持设置执行超时时间,执行connect或请求超时后抛出CaviarNetworkException
@@ -110,6 +114,8 @@
 *消息缓存重发
     |-TODO
 
+
+
 [四 性能设计]
 *IO模型(基于Netty的非阻塞IO)
     |-底层基于Selector的多路复用实现,非阻塞IO,连接与线程解耦,高性能
@@ -122,3 +128,28 @@
 *序列化框架
     |-Caviar消息协议直接基于byte数组进行序列化/反序列化,简单高效
     |-业务消息体直接定义为byte数组,将编解码操作开放给使用者自行实现
+
+
+
+[五 代码结构]
+|-caviar                        工程根目录
+    |-codec                     定义了序列化反序列化接口Serialization,同时基于Gson的实现类,供业务方使用
+    |-demo                      一个基于caviar框架实现的客户端与服务端交互示例
+    |-network                   网络层
+        |-client                    客户端接口定义及实现
+        |-dispatcher                网络事件派发器接口定义及实现
+        |-handler                   基于Netty需要实现的ChannelHandler
+        |-request                   请求相关
+            |-CaviarMsgCallback         异步请求回调接口
+            |-RequestContext            请求上下文
+            |-ReqeustContextManager     请求上下文管理器
+            |-RequestIdGenerator        请求ID生成器
+        |-server                    服务端接定义及实现
+        |-session                   连接管理相关
+            |-SessionContext            连接上下文
+            |-SessionManager            连接上下文管理器
+    |-protocol                  协议层
+        |-CaviarMessage         通信协议定义
+        |-CaviarDecoder         通信协议解码器
+        |-CaviarEncoder         通信协议编码器
+    |-util                      通用工具类

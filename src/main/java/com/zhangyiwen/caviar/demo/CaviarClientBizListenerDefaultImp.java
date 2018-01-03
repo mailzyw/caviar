@@ -1,4 +1,4 @@
-package com.zhangyiwen.caviar.biz;
+package com.zhangyiwen.caviar.demo;
 
 import com.zhangyiwen.caviar.network.client.CaviarClientBizListener;
 import com.zhangyiwen.caviar.network.request.RequestContext;

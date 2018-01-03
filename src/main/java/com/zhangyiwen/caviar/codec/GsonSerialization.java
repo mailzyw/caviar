@@ -14,7 +14,7 @@ import java.time.Instant;
 public class GsonSerialization implements Serialization{
 
     //==========
-    private final Gson gson;
+    private static volatile Gson gson;
 
     public GsonSerialization() {
         this(FieldNamingPolicy.IDENTITY);
