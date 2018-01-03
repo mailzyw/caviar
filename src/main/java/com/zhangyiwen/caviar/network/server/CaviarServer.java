@@ -98,7 +98,7 @@ public class CaviarServer implements Server {
         this.eventDispatcher.close();
         //
         try {
-            NettySessionContext.serverCallBackTimeoutExecutor.awaitTermination(10, TimeUnit.SECONDS);
+            NettySessionContext.serverCallBackTimeoutExecutor.awaitTermination(5, TimeUnit.SECONDS);
             NettySessionContext.serverCallBackTimeoutExecutor.shutdown();
         } catch (InterruptedException e) {
             LOGGER.error("[CaviarClient] close. error.", e);

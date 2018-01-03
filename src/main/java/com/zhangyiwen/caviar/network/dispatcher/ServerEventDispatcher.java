@@ -81,7 +81,7 @@ public class ServerEventDispatcher implements EventDispatcher{
      */
     public void close() throws IOException {
         try {
-            executor.awaitTermination(10, TimeUnit.SECONDS);
+            executor.awaitTermination(5, TimeUnit.SECONDS);
             executor.shutdown();
             LOGGER.info("[EventDispatcher] close. succeed.");
         } catch (InterruptedException e) {
